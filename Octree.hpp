@@ -222,18 +222,18 @@ namespace cube2_map_importer {
 
 	#define dimension(orient) ((orient)>>1)
 
-	/*
+
+	// The macro behind this has been resolved.
 	const ivec facecoords[6][4] =
 	{
-	#define GENFACEORIENT(o, v0, v1, v2, v3) \
-		{ v0, v1, v2, v3 },
-	#define GENFACEVERT(o, n, x,y,z, xv,yv,zv) \
-			ivec(x,y,z)
-		GENFACEVERTS(0, 8, 0, 8, 0, 8, , , , , , )
-	#undef GENFACEORIENT
-	#undef GENFACEVERT
+		{ {0,8,8}, {0,8,0}, {0,0,0}, {0,0,8} },
+		{ {8,8,8}, {8,0,8}, {8,0,0}, {8,8,0} },
+		{ {8,0,8}, {0,0,8}, {0,0,0}, {8,0,0} },
+		{ {0,8,0}, {0,8,8}, {8,8,8}, {8,8,0} },
+		{ {0,0,0}, {0,8,0}, {8,8,0}, {8,0,0} },
+		{ {0,0,8}, {8,0,8}, {8,8,8}, {0,8,8} }
 	};
-	*/
+
 
 	struct surfaceinfo
 	{
