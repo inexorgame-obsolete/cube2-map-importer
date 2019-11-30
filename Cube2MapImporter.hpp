@@ -254,7 +254,7 @@ namespace cube2_map_importer {
 			std::vector<VSlot> map_vertex_slots;
 
 			// 
-			cube *worldroot = newcubes(F_SOLID);
+			cube *worldroot;
 
 			// 
 			std::size_t all_octree_nodes;
