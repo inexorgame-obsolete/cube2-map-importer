@@ -24,7 +24,7 @@ namespace cube2_map_importer {
 		extra_game_information.clear();
 		texture_mru.clear();
 		all_octree_nodes = 0;
-		worldroot = NULL;
+		octree_world_root = NULL;
 	}
 
 
@@ -260,49 +260,35 @@ namespace cube2_map_importer {
 		return true;
 	}
 
-	#define setfaces(c, face) { (c).faces[0] = (c).faces[1] = (c).faces[2] = face; }
-	#define solidfaces(c) setfaces(c, F_SOLID)
-	#define emptyfaces(c) setfaces(c, F_EMPTY)
 
-
-	// Looks good... (TODO: Remove this message)
-	cube * Cube2MapImporter::newcubes(uint face, int mat)
+	CubePointArray Cube2MapImporter::generate_new_cubes(uint face, int mat)
 	{
-		cout << "Generating new cubes" << endl;
+		// A structure which contains 8 std::shared_ptr<cube>.
+		CubePointArray new_cubes;
 
-		cube *c = new cube[8];
-		
 		for(std::size_t i=0; i<8; i++)
 		{
-			c->children = NULL;
+			// Create a new shared pointer.
+			new_cubes.entry[i] = std::make_shared<cube>();
 
-			c->ext = NULL;
+			new_cubes.entry[i]->children = NULL;
+
+			new_cubes.entry[i]->ext = NULL;
+
+			new_cubes.entry[i]->visible = NULL;
 			
-			c->visible = 0;
-			
-			c->merged = 0;
+			new_cubes.entry[i]->merged = NULL;
 
-			setfaces(*c, face);
-
-			for(std::size_t l=0; l<6; l++)
+			for(std::size_t k=0; k<3; k++)
 			{
-				c->texture[l] = DEFAULT_GEOM;
+				new_cubes.entry[i]->faces[k] = face;
 			}
-
-			c->material = mat;
-
-			// This is pointer arithmetics!
-			// Move to next cube!
-			c++;
 		}
-
-		// Increase number of octree nodes by 1.
+		
 		all_octree_nodes++;
 
-		cout << "all_octree_nodes:" << all_octree_nodes << endl;
-		
-		// Pointer arithmetics again!
-		return c-8;
+		// Return a structure which contains 8 new std::shared_ptr<cube>.
+		return new_cubes;
 	}
 
 
@@ -1388,14 +1374,11 @@ namespace cube2_map_importer {
 		genvertp(c, p, p1, p2, plane1);
 		genvertp(c, p, p2, p3, plane2);
 		genvertp(c, p, p3, p1, plane3);
+
 		if(plane1==plane2) genvertp(c, p, p1, p2, plane1, true);
 		if(plane1==plane3) genvertp(c, p, p1, p2, plane1, true);
 		if(plane2==plane3) genvertp(c, p, p2, p3, plane2, true);
 
-		//ASSERT(threeplaneintersect(plane1, plane2, plane3, v));
-		//ASSERT(v.x>=0 && v.x<=8);
-		//ASSERT(v.y>=0 && v.y<=8);
-		//ASSERT(v.z>=0 && v.z<=8);
 		v.x = max(0.0f, min(8.0f, v.x));
 		v.y = max(0.0f, min(8.0f, v.y));
 		v.z = max(0.0f, min(8.0f, v.z));
@@ -1467,7 +1450,9 @@ namespace cube2_map_importer {
 
 	cubeext *Cube2MapImporter::growcubeext(cubeext *old, int maxverts)
 	{
+		// TODO: Refactor!
 		cubeext *ext = (cubeext *)new uchar[sizeof(cubeext) + maxverts*sizeof(vertinfo)];
+
 		if(old)
 		{
 			ext->va = old->va;
@@ -1480,7 +1465,9 @@ namespace cube2_map_importer {
 			ext->ents = NULL;
 			ext->tjoints = -1;
 		}
+
 		ext->maxverts = maxverts;
+		
 		return ext;
 	}
 
@@ -1513,9 +1500,6 @@ namespace cube2_map_importer {
 
 
 	#define PI  (3.1415927f)
-	#define PI2 (2*PI)
-	#define SQRT2 (1.4142136f)
-	#define SQRT3 (1.7320508f)
 	#define RAD (PI / 180.0f)
 
 
@@ -1683,7 +1667,7 @@ namespace cube2_map_importer {
 	}
 
 
-	void Cube2MapImporter::loadc(cube &c, const ivec &co, int size, bool &failed)
+	void Cube2MapImporter::loadc(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed)
 	{
 		bool haschildren = false;
     
@@ -1695,7 +1679,7 @@ namespace cube2_map_importer {
 		{
 			case OCTSAV_CHILDREN:
 			{
-				c.children = loadchildren(co, size>>1, failed);
+				c->children = load_octree_children(co, size>>1, failed);
 				return;
 			}
 			case OCTSAV_LODCUBE:
@@ -1705,17 +1689,17 @@ namespace cube2_map_importer {
 			}
 			case OCTSAV_EMPTY:
 			{
-				emptyfaces(c);
+				c->faces[0] = c->faces[1] = c->faces[2] = F_EMPTY;
 				break;
 			}
 			case OCTSAV_SOLID:
 			{
-				solidfaces(c);
+				c->faces[0] = c->faces[1] = c->faces[2] = F_SOLID;
 				break;
 			}
 			case OCTSAV_NORMAL:
 			{
-				read_memory_into_structure(&c.edges[0], 12, sizeof(c.edges));
+				read_memory_into_structure(&c->edges[0], 12, sizeof(c->edges));
 				break;
 			}
 			default:
@@ -1729,11 +1713,11 @@ namespace cube2_map_importer {
 		{
 			if(map_header.version < 14)
 			{
-				c.texture[i] = read_one_byte_from_buffer();
+				c->texture[i] = read_one_byte_from_buffer();
 			}
 			else
 			{
-				c.texture[i] = read_unsigned_short_from_buffer();
+				c->texture[i] = read_unsigned_short_from_buffer();
 			}
 		}
 
@@ -1751,10 +1735,19 @@ namespace cube2_map_importer {
 
 				if(map_header.version < 27)
 				{
-					static const ushort matconv[] = { MAT_AIR, MAT_WATER, MAT_CLIP, MAT_GLASS|MAT_CLIP, MAT_NOCLIP, MAT_LAVA|MAT_DEATH, MAT_GAMECLIP, MAT_DEATH };
-					c.material = size_t(mat) < sizeof(matconv)/sizeof(matconv[0]) ? matconv[mat] : MAT_AIR;
+					static const ushort matconv[] = {
+						MAT_AIR,
+						MAT_WATER,
+						MAT_CLIP,
+						MAT_GLASS|MAT_CLIP,
+						MAT_NOCLIP,
+						MAT_LAVA|MAT_DEATH,
+						MAT_GAMECLIP, MAT_DEATH
+					};
+
+					c->material = size_t(mat) < sizeof(matconv)/sizeof(matconv[0]) ? matconv[mat] : MAT_AIR;
 				}
-				else c.material = convertoldmaterial(mat);
+				else c->material = convertoldmaterial(mat);
 			}
 			
 			surfacecompat surfaces[12];
@@ -1809,14 +1802,14 @@ namespace cube2_map_importer {
 
 			if(map_header.version <= 8)
 			{
-				edgespan2vectorcube(c);
+				edgespan2vectorcube(*c);
 			}
 
 			if(map_header.version <= 11)
 			{
-				swap(c.faces[0], c.faces[2]);
-				swap(c.texture[0], c.texture[4]);
-				swap(c.texture[1], c.texture[5]);
+				swap(c->faces[0], c->faces[2]);
+				swap(c->texture[0], c->texture[4]);
+				swap(c->texture[1], c->texture[5]);
 				if(hassurfs&0x33)
 				{
 					swap(surfaces[0], surfaces[4]);
@@ -1830,7 +1823,7 @@ namespace cube2_map_importer {
 				if(octsav&0x80)
 				{
 					int merged = read_one_byte_from_buffer();
-					c.merged = merged&0x3F;
+					c->merged = merged&0x3F;
 					if(merged&0x80)
 					{
 						int mask = read_one_byte_from_buffer();
@@ -1862,7 +1855,7 @@ namespace cube2_map_importer {
 			}                
 			if(hassurfs || hasnorms || hasmerges)
 			{
-				convertoldsurfaces(c, co, size, surfaces, hassurfs, normals, hasnorms, merges, hasmerges);
+				convertoldsurfaces(*c, co, size, surfaces, hassurfs, normals, hasnorms, merges, hasmerges);
 			}
 		}
 		else
@@ -1872,13 +1865,13 @@ namespace cube2_map_importer {
 				if(map_header.version <= 32)
 				{
 					int mat = read_one_byte_from_buffer();
-					c.material = convertoldmaterial(mat);
+					c->material = convertoldmaterial(mat);
 				}
-				else c.material = read_unsigned_short_from_buffer();
+				else c->material = read_unsigned_short_from_buffer();
 			}
 			if(octsav&0x80)
 			{
-				c.merged = read_one_byte_from_buffer();
+				c->merged = read_one_byte_from_buffer();
 			}
 			if(octsav&0x20)
 			{
@@ -1886,24 +1879,24 @@ namespace cube2_map_importer {
 				surfmask = read_one_byte_from_buffer();
 				totalverts = read_one_byte_from_buffer();
 				
-				newcubeext(c, totalverts, false);
+				newcubeext(*c, totalverts, false);
 
-				memset(c.ext->surfaces, 0, sizeof(c.ext->surfaces));
-				memset(c.ext->verts(), 0, totalverts*sizeof(vertinfo));
+				memset(c->ext->surfaces, 0, sizeof(c->ext->surfaces));
+				memset(c->ext->verts(), 0, totalverts*sizeof(vertinfo));
 				int offset = 0;
 
 				for(std::size_t i=0; i<6; i++)
 				{
 					if(surfmask&(1<<i)) 
 					{
-						surfaceinfo &surf = c.ext->surfaces[i];
+						surfaceinfo &surf = c->ext->surfaces[i];
 						
 						read_memory_into_structure(&surf, sizeof(surfacecompat), sizeof(surfacecompat));
 
 						int vertmask = surf.verts, numverts = surf.totalverts();
 						if(!numverts) { surf.verts = 0; continue; }
 						surf.verts = offset;
-						vertinfo *verts = c.ext->verts() + offset;
+						vertinfo *verts = c->ext->verts() + offset;
 						offset += numverts;
 						ivec v[4], n;
 						
@@ -1914,7 +1907,7 @@ namespace cube2_map_importer {
 						int vr = R[dim];
 						int bias = 0;
 						
-						genfaceverts(c, i, v);
+						genfaceverts(*c, i, v);
 						bool hasxyz = (vertmask&0x04)!=0, hasuv = (vertmask&0x40)!=0, hasnorm = (vertmask&0x80)!=0;
 						
 						if(hasxyz)
@@ -2045,23 +2038,28 @@ namespace cube2_map_importer {
 			}    
 		}
 
-		c.children = (haschildren ? loadchildren(co, size>>1, failed) : NULL);
+		if(haschildren)
+		{
+			c->children = load_octree_children(co, size>>1, failed);
+		}
+		else
+		{
+			c->children = NULL;
+		}
 	}
 
 
-	// Looks good.. (TODO: Remove this message)
-	cube* Cube2MapImporter::loadchildren(const ivec &co, int size, bool &failed)
+	std::shared_ptr<cube> Cube2MapImporter::load_octree_children(const ivec &co, int size, bool &failed)
 	{
-		// TODO: Refactoring: Replace with std::shared_ptr.
-		cube *c = newcubes();
-
+		CubePointArray new_cubes = generate_new_cubes();
+		
 		for(std::size_t i=0; i<8; i++)
 		{
-			loadc(c[i], ivec(i, co.x, co.y, co.z, size), size, failed);
+			loadc(new_cubes.entry[i], ivec(i, co.x, co.y, co.z, size), size, failed);
 			if(failed) break;
 		}
 
-		return c;
+		return new_cubes.entry[0];
 	}
 	
 
@@ -2069,7 +2067,7 @@ namespace cube2_map_importer {
 	{
 		cout << "Loading octree geometry." << endl;
 
-		worldroot = loadchildren(ivec(0, 0, 0), map_header.worldsize >> 1, loading_octree_failed);
+		octree_world_root = load_octree_children(ivec(0, 0, 0), map_header.worldsize >> 1, loading_octree_failed);
 
 		cout << "Loading octree finished." << endl;
 

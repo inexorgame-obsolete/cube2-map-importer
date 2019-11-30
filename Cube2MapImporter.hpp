@@ -42,6 +42,13 @@ namespace cube2_map_importer {
 		IMPORTER_READY = 0,
 		IMPORTER_WORKING
 	};
+	
+
+	// A structure which contains 8 std::shared_ptr<cube>.
+	struct CubePointArray
+	{
+		std::shared_ptr<cube> entry[8];
+	};
 
 
 	// 
@@ -128,13 +135,12 @@ namespace cube2_map_importer {
 
 			// TODO: Move this into helper section.
 			bool is_entity_inside_world(const Entity &e) const;
+			
+			// 
+			CubePointArray generate_new_cubes(uint face = F_EMPTY, int mat = MAT_AIR);
 
 			// 
-			cube *newcubes(uint face = F_EMPTY, int mat = MAT_AIR);
-
-			// 
-			cube *loadchildren(const ivec &co, int size, bool &failed);
-
+			std::shared_ptr<cube> load_octree_children(const ivec &co, int size, bool &failed);
 
 		protected:
 
@@ -254,7 +260,7 @@ namespace cube2_map_importer {
 			std::vector<VSlot> map_vertex_slots;
 
 			// 
-			cube *worldroot;
+			std::shared_ptr<cube> octree_world_root;
 
 			// 
 			std::size_t all_octree_nodes;
@@ -266,15 +272,15 @@ namespace cube2_map_importer {
 			void setcubeext(cube &c, cubeext *ext);
 			
 			// 
-			//void convertoldsurfaces(cube &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges);
-
 			cubeext *growcubeext(cubeext *old, int maxverts);
 
 			// 
-			void loadc(cube &c, const ivec &co, int size, bool &failed);
+			void loadc(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed);
 			
+			// 
 			cubeext *newcubeext(cube &c, int maxverts, bool init);
 
+			// 
 			void edgespan2vectorcube(cube &c);
 
 		public:

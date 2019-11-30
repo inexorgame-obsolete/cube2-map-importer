@@ -276,7 +276,10 @@ namespace cube2_map_importer {
 
 	struct cube
 	{
-		cube *children;          // points to 8 cube structures which are its children, or NULL. -Z first, then -Y, -X
+		//cube *children;          // points to 8 cube structures which are its children, or NULL. -Z first, then -Y, -X
+
+		std::shared_ptr<cube> children;
+
 		cubeext *ext;            // extended info for the cube
 		union
 		{
