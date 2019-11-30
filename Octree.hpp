@@ -213,6 +213,7 @@ namespace cube2_map_importer {
 	};
 
 
+	// 
 	#define LM_MINW 2
 	#define LM_MINH 2
 	#define LM_MAXW 128
@@ -220,7 +221,47 @@ namespace cube2_map_importer {
 	#define LM_PACKW 512
 	#define LM_PACKH 512
 
-	//#define dimension(orient) ((orient)>>1)
+
+	#define PI  (3.1415927f)
+	#define RAD (PI / 180.0f)
+
+
+	// TODO: Remove this!
+	#define edgemake(a, b) ((b)<<4|a)
+	#define edgeget(edge, coord) ((coord) ? (edge)>>4 : (edge)&0xF)
+	#define edgeset(edge, coord, val) ((edge) = ((coord) ? ((edge)&0xF)|((val)<<4) : ((edge)&0xF0)|(val)))
+	#define cubeedge(c, d, x, y) ((c).edges[(((d)<<2)+((y)<<1)+(x))])
+	#define isempty(c) ((c).faces[0]==F_EMPTY)
+	#define isentirelysolid(c) ((c).faces[0]==F_SOLID && (c).faces[1]==F_SOLID && (c).faces[2]==F_SOLID)
+
+	#define loop(v,m) for(int v = 0; v<int(m); v++)
+	#define loopi(m) loop(i,m)
+	#define loopj(m) loop(j,m)
+	#define loopk(m) loop(k,m)
+	#define loopl(m) loop(l,m)
+
+	const uint F_EMPTY = 0;             // all edges in the range (0,0)
+	const uint F_SOLID = 0x80808080;    // all edges in the range (0,8)
+
+	#define GENFACEVERTX(o,n, x,y,z, xv,yv,zv) GENFACEVERT(o,n, x,y,z, xv,yv,zv)
+	#define GENFACEVERTSX(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
+		GENFACEORIENT(0, GENFACEVERTX(0,0, x0,y1,z1, d0,r1,c1), GENFACEVERTX(0,1, x0,y1,z0, d0,r1,c0), GENFACEVERTX(0,2, x0,y0,z0, d0,r0,c0), GENFACEVERTX(0,3, x0,y0,z1, d0,r0,c1)) \
+		GENFACEORIENT(1, GENFACEVERTX(1,0, x1,y1,z1, d1,r1,c1), GENFACEVERTX(1,1, x1,y0,z1, d1,r0,c1), GENFACEVERTX(1,2, x1,y0,z0, d1,r0,c0), GENFACEVERTX(1,3, x1,y1,z0, d1,r1,c0))
+	#define GENFACEVERTY(o,n, x,y,z, xv,yv,zv) GENFACEVERT(o,n, x,y,z, xv,yv,zv)
+	#define GENFACEVERTSY(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
+		GENFACEORIENT(2, GENFACEVERTY(2,0, x1,y0,z1, c1,d0,r1), GENFACEVERTY(2,1, x0,y0,z1, c0,d0,r1), GENFACEVERTY(2,2, x0,y0,z0, c0,d0,r0), GENFACEVERTY(2,3, x1,y0,z0, c1,d0,r0)) \
+		GENFACEORIENT(3, GENFACEVERTY(3,0, x0,y1,z0, c0,d1,r0), GENFACEVERTY(3,1, x0,y1,z1, c0,d1,r1), GENFACEVERTY(3,2, x1,y1,z1, c1,d1,r1), GENFACEVERTY(3,3, x1,y1,z0, c1,d1,r0))
+	#define GENFACEVERTZ(o,n, x,y,z, xv,yv,zv) GENFACEVERT(o,n, x,y,z, xv,yv,zv)
+	#define GENFACEVERTSZ(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
+		GENFACEORIENT(4, GENFACEVERTZ(4,0, x0,y0,z0, r0,c0,d0), GENFACEVERTZ(4,1, x0,y1,z0, r0,c1,d0), GENFACEVERTZ(4,2, x1,y1,z0, r1,c1,d0), GENFACEVERTZ(4,3, x1,y0,z0, r1,c0,d0)) \
+		GENFACEORIENT(5, GENFACEVERTZ(5,0, x0,y0,z1, r0,c0,d1), GENFACEVERTZ(5,1, x1,y0,z1, r1,c0,d1), GENFACEVERTZ(5,2, x1,y1,z1, r1,c1,d1), GENFACEVERTZ(5,3, x0,y1,z1, r0,c1,d1))
+	#define GENFACEVERTSXY(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
+		GENFACEVERTSX(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
+		GENFACEVERTSY(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1)
+	#define GENFACEVERTS(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
+		GENFACEVERTSXY(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
+		GENFACEVERTSZ(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1)
+
 
 
 	// The macro behind this has been resolved.
@@ -273,10 +314,6 @@ namespace cube2_map_importer {
 		}
 	}; 
 
-	
-	#define PI  (3.1415927f)
-	#define RAD (PI / 180.0f)
-
 
 	struct cube
 	{
@@ -300,9 +337,6 @@ namespace cube2_map_importer {
 			uchar visible;       // visibility info for faces
 		};
 	};
-
-	const uint F_EMPTY = 0;             // all edges in the range (0,0)
-	const uint F_SOLID = 0x80808080;    // all edges in the range (0,8)
 
 
 };

@@ -275,7 +275,7 @@ namespace cube2_map_importer {
 			cubeext *growcubeext(cubeext *old, int maxverts);
 
 			// 
-			void loadc(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed);
+			void fill_cubes_with_data(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed);
 			
 			// 
 			cubeext *newcubeext(cube &c, int maxverts, bool init);
@@ -285,17 +285,15 @@ namespace cube2_map_importer {
 
 		public:
 			
-			// 
 			Cube2MapImporter()
 			{
 				reset_data();
 			}
 
-			// 
 			~Cube2MapImporter()
 			{
+				reset_data();
 			}
-
 
 			// Returns the status of the map importer.
 			const CUBE2_MAP_IMPORTER_STATUS get_status() const
@@ -305,7 +303,7 @@ namespace cube2_map_importer {
 
 			// TODO: Generate CRC32 checksum!
 
-			// Load a map file.
+			// Loads a Cube2 map file.
 			bool load_map_file(const std::string& map_file_name);
 
 

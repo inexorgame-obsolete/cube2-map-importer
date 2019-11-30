@@ -265,27 +265,42 @@ namespace cube2_map_importer {
 	{
 		// A structure which contains 8 std::shared_ptr<cube>.
 		CubePointArray new_cubes;
-
+		
 		for(std::size_t i=0; i<8; i++)
 		{
 			// Create a new shared pointer.
 			new_cubes.entry[i] = std::make_shared<cube>();
+		}
 
-			new_cubes.entry[i]->children = NULL;
-
-			new_cubes.entry[i]->ext = NULL;
-
-			new_cubes.entry[i]->visible = NULL;
+		// TODO: Merge loops!
+		for(std::size_t i=0; i<8; i++)
+		{
+			auto p = new_cubes.entry[i];
 			
-			new_cubes.entry[i]->merged = NULL;
+			p->children = NULL;
+			p->ext = NULL;
+			p->visible = NULL;
+			p->merged = NULL;
 
 			for(std::size_t k=0; k<3; k++)
 			{
-				new_cubes.entry[i]->faces[k] = face;
+				p->faces[k] = face;
 			}
+
+			for(std::size_t l=0; l<6; l++)
+			{
+				p->texture[l] = DEFAULT_GEOM;
+			}
+
+			int x = 0;
 		}
 		
 		all_octree_nodes++;
+
+		for(std::size_t o=0; o<8; o++)
+		{
+			auto test_ = new_cubes.entry[o];
+		}
 
 		// Return a structure which contains 8 new std::shared_ptr<cube>.
 		return new_cubes;
@@ -1336,11 +1351,6 @@ namespace cube2_map_importer {
 		return ((mat&7)<<MATF_VOLUME_SHIFT) | (((mat>>3)&3)<<MATF_CLIP_SHIFT) | (((mat>>5)&7)<<MATF_FLAG_SHIFT);
 	}
 
-	#define edgemake(a, b) ((b)<<4|a)
-	#define edgeget(edge, coord) ((coord) ? (edge)>>4 : (edge)&0xF)
-	#define edgeset(edge, coord, val) ((edge) = ((coord) ? ((edge)&0xF)|((val)<<4) : ((edge)&0xF0)|(val)))
-	#define cubeedge(c, d, x, y) ((c).edges[(((d)<<2)+((y)<<1)+(x))])
-
 
 	static inline int edgeval(cube &c, const ivec &p, int dim, int coord)
 	{
@@ -1386,15 +1396,6 @@ namespace cube2_map_importer {
 	}
 
 
-	#define isempty(c) ((c).faces[0]==F_EMPTY)
-	#define isentirelysolid(c) ((c).faces[0]==F_SOLID && (c).faces[1]==F_SOLID && (c).faces[2]==F_SOLID)
-
-	#define loop(v,m) for(int v = 0; v<int(m); v++)
-	#define loopi(m) loop(i,m)
-	#define loopj(m) loop(j,m)
-	#define loopk(m) loop(k,m)
-	#define loopl(m) loop(l,m)
-
 	void Cube2MapImporter::edgespan2vectorcube(cube &c)
 	{
 		if(isentirelysolid(c) || isempty(c)) return;
@@ -1411,24 +1412,6 @@ namespace cube2_map_importer {
 		}
 	}
 
-	#define GENFACEVERTX(o,n, x,y,z, xv,yv,zv) GENFACEVERT(o,n, x,y,z, xv,yv,zv)
-	#define GENFACEVERTSX(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
-		GENFACEORIENT(0, GENFACEVERTX(0,0, x0,y1,z1, d0,r1,c1), GENFACEVERTX(0,1, x0,y1,z0, d0,r1,c0), GENFACEVERTX(0,2, x0,y0,z0, d0,r0,c0), GENFACEVERTX(0,3, x0,y0,z1, d0,r0,c1)) \
-		GENFACEORIENT(1, GENFACEVERTX(1,0, x1,y1,z1, d1,r1,c1), GENFACEVERTX(1,1, x1,y0,z1, d1,r0,c1), GENFACEVERTX(1,2, x1,y0,z0, d1,r0,c0), GENFACEVERTX(1,3, x1,y1,z0, d1,r1,c0))
-	#define GENFACEVERTY(o,n, x,y,z, xv,yv,zv) GENFACEVERT(o,n, x,y,z, xv,yv,zv)
-	#define GENFACEVERTSY(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
-		GENFACEORIENT(2, GENFACEVERTY(2,0, x1,y0,z1, c1,d0,r1), GENFACEVERTY(2,1, x0,y0,z1, c0,d0,r1), GENFACEVERTY(2,2, x0,y0,z0, c0,d0,r0), GENFACEVERTY(2,3, x1,y0,z0, c1,d0,r0)) \
-		GENFACEORIENT(3, GENFACEVERTY(3,0, x0,y1,z0, c0,d1,r0), GENFACEVERTY(3,1, x0,y1,z1, c0,d1,r1), GENFACEVERTY(3,2, x1,y1,z1, c1,d1,r1), GENFACEVERTY(3,3, x1,y1,z0, c1,d1,r0))
-	#define GENFACEVERTZ(o,n, x,y,z, xv,yv,zv) GENFACEVERT(o,n, x,y,z, xv,yv,zv)
-	#define GENFACEVERTSZ(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
-		GENFACEORIENT(4, GENFACEVERTZ(4,0, x0,y0,z0, r0,c0,d0), GENFACEVERTZ(4,1, x0,y1,z0, r0,c1,d0), GENFACEVERTZ(4,2, x1,y1,z0, r1,c1,d0), GENFACEVERTZ(4,3, x1,y0,z0, r1,c0,d0)) \
-		GENFACEORIENT(5, GENFACEVERTZ(5,0, x0,y0,z1, r0,c0,d1), GENFACEVERTZ(5,1, x1,y0,z1, r1,c0,d1), GENFACEVERTZ(5,2, x1,y1,z1, r1,c1,d1), GENFACEVERTZ(5,3, x0,y1,z1, r0,c1,d1))
-	#define GENFACEVERTSXY(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
-		GENFACEVERTSX(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
-		GENFACEVERTSY(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1)
-	#define GENFACEVERTS(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
-		GENFACEVERTSXY(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1) \
-		GENFACEVERTSZ(x0,x1, y0,y1, z0,z1, c0,c1, r0,r1, d0,d1)
 
 	void genfaceverts(const cube &c, int orient, ivec v[4])
 	{
@@ -1639,6 +1622,7 @@ namespace cube2_map_importer {
 					if(k > 0 && (pos[k] == pos[0] || pos[k] == pos[k-1])) continue;
 					vertinfo &dv = curverts[numverts++];
 					dv.setxyz(pos[k]);
+
 					if(uselms)
 					{
 						float u = src->x + (src->texcoords[k*2] / 255.0f) * (src->w - 1),
@@ -1667,14 +1651,11 @@ namespace cube2_map_importer {
 	}
 
 
-	void Cube2MapImporter::loadc(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed)
+	void Cube2MapImporter::fill_cubes_with_data(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed)
 	{
 		bool haschildren = false;
     
-		// ?
 		int octsav = read_one_byte_from_buffer();
-
-		cout << "octsav:" << octsav << endl;
 
 		switch(octsav&0x7)
 		{
@@ -1718,6 +1699,7 @@ namespace cube2_map_importer {
 			}
 			else
 			{
+				// So after mapversion 14 this is an unsigned short instead of one single byte.
 				c->texture[i] = read_unsigned_short_from_buffer();
 			}
 		}
@@ -1912,7 +1894,10 @@ namespace cube2_map_importer {
 						int bias = 0;
 						
 						genfaceverts(*c, i, v);
-						bool hasxyz = (vertmask&0x04)!=0, hasuv = (vertmask&0x40)!=0, hasnorm = (vertmask&0x80)!=0;
+
+						bool hasxyz = (vertmask&0x04)!=0;
+						bool hasuv = (vertmask&0x40)!=0;
+						bool hasnorm = (vertmask&0x80)!=0;
 						
 						if(hasxyz)
 						{ 
@@ -1951,6 +1936,7 @@ namespace cube2_map_importer {
 								ushort r2 = read_unsigned_short_from_buffer();
 
 								ivec xyz;
+								
 								xyz[vc] = c1; xyz[vr] = r1; xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
 								verts[0].setxyz(xyz);
 								xyz[vc] = c1; xyz[vr] = r2; xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
@@ -1959,18 +1945,22 @@ namespace cube2_map_importer {
 								verts[2].setxyz(xyz);
 								xyz[vc] = c2; xyz[vr] = r1; xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
 								verts[3].setxyz(xyz);
+								
 								hasxyz = false;
 							}
 							if(hasuv && vertmask&0x02)
 							{
 								int uvorder = (vertmask&0x30)>>4;
+								
 								vertinfo &v0 = verts[uvorder], &v1 = verts[(uvorder+1)&3], &v2 = verts[(uvorder+2)&3], &v3 = verts[(uvorder+3)&3]; 
+								
 								v0.u = read_unsigned_short_from_buffer();
 								v0.v = read_unsigned_short_from_buffer();
 								v2.u = read_unsigned_short_from_buffer();
 								v2.v = read_unsigned_short_from_buffer();
 								v1.u = v0.u; v1.v = v2.v;
 								v3.u = v2.u; v3.v = v0.v;
+								
 								if(surf.numverts&LAYER_DUP)
 								{
 									vertinfo &b0 = verts[4+uvorder], &b1 = verts[4+((uvorder+1)&3)], &b2 = verts[4+((uvorder+2)&3)], &b3 = verts[4+((uvorder+3)&3)];
@@ -2059,7 +2049,8 @@ namespace cube2_map_importer {
 		
 		for(std::size_t i=0; i<8; i++)
 		{
-			loadc(new_cubes.entry[i], ivec(i, co.x, co.y, co.z, size), size, failed);
+			fill_cubes_with_data(new_cubes.entry[i], ivec(i, co.x, co.y, co.z, size), size, failed);
+
 			if(failed) break;
 		}
 
@@ -2071,6 +2062,7 @@ namespace cube2_map_importer {
 	{
 		cout << "Loading octree geometry." << endl;
 
+		// Load the root of the octree game world.
 		octree_world_root = load_octree_children(ivec(0, 0, 0), map_header.worldsize >> 1, loading_octree_failed);
 
 		cout << "Loading octree finished." << endl;
@@ -2115,16 +2107,6 @@ namespace cube2_map_importer {
 		{
 			return false;
 		}
-
-
-		// Debug: read 100 bytes and compare RAM directly with Cube2.
-		/*
-		char mem_arr[100];
-		
-		for(int i=0; i<100; i++)
-			mem_arr[i] = read_one_byte_from_buffer();
-		*/
-
 
 		if(!parse_octree())
 		{
