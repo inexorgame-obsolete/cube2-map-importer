@@ -127,7 +127,6 @@ namespace cube2_map_importer {
 		}
 		else
 		{
-			// File not found!
 			cout << "Error: could not open file!" << endl;
 			return false;
 		}
@@ -398,7 +397,10 @@ namespace cube2_map_importer {
 
 		cout << "Validating map header." << endl;
 
-		cout << "Magic number: " << map_header.magic << endl;
+		// Copy magic number and null-terminate it automatically.
+		std::string magic_number(map_header.magic);
+
+		cout << "Magic number: " << magic_number.c_str() << endl;
 		
 		// Check if magic number "OCTA" is valid.
 		if(0 != std::memcmp(map_header.magic, "OCTA", 4))
@@ -1050,6 +1052,171 @@ namespace cube2_map_importer {
 	}
 
 
+	bool Cube2MapImporter::parse_vslots()
+	{
+		cout << "VSlots: " << map_header.numvslots << "." << endl;
+
+		// Initialise a vector of VSlots for preview.
+		// Allocate the required memory and fill it with -1.
+		// TODO: Check if we should change the vector to int?
+		std::vector<std::size_t> preview_vslots(map_header.numvslots, -1);
+			
+		// TODO: reserve memory in advance to minimize allocation.
+
+		// How many VSlots to load?
+		// TODO: Check if we should change to int?
+		std::size_t vslots_to_load = map_header.numvslots;
+
+		// Continue as long as there are VSlots to be loaded.
+		while(vslots_to_load > 0)
+		{
+			// What is this?
+			int changed = read_int_from_buffer();
+
+			// What is this?
+			if(changed < 0)
+			{
+				// Use negative value.
+				int negative_value = - changed;
+
+				// Note: We use the negative value for iteration.
+				for(int i=0; i<negative_value; i++)
+				{
+					// ?
+					VSlot new_vslot(NULL, map_vertex_slots.size());
+						
+					// Add to vslot buffer.
+					map_vertex_slots.push_back(new_vslot);
+				}
+
+				// What is this?
+				vslots_to_load += changed;
+			}
+			else
+			{
+				// Read size from buffer.
+				preview_vslots[map_vertex_slots.size()] = read_int_from_buffer();
+					
+				// A new vslot.
+				VSlot new_vslot(NULL, map_vertex_slots.size());
+					
+				// Add to vslot buffer.
+				map_vertex_slots.push_back(new_vslot);
+				new_vslot.changed = changed;
+
+				// Shader parameter.
+				if(new_vslot.changed & (1<<VSLOT_SHPARAM))
+				{
+					// Read the number of shader parameters.
+					std::size_t number_of_shader_parameters = read_unsigned_short_from_buffer();
+						
+					// Shader parameters?
+					for(std::size_t i=0; i<number_of_shader_parameters; i++)
+					{
+						// A shader parameter.
+						ShaderParam new_shader_parameter;
+					
+						// The length of the name of the shader parameter.
+						int shader_param_name_length = read_unsigned_short_from_buffer();
+
+						// Print shader parameter name.
+						cout << "Reading shader parameter: " << new_shader_parameter.name.c_str() << endl;
+
+						// Limit the length of the name of the shader parameter.
+						shader_param_name_length = std::min(shader_param_name_length, MAXSTRLEN-1);
+
+						// Read the name of the shader paramrt
+						new_shader_parameter.name = read_slice_from_buffer_as_string(shader_param_name_length);
+						new_shader_parameter.type = SHPARAM_LOOKUP;
+						new_shader_parameter.index = -1;
+						new_shader_parameter.loc = -1;
+					
+						// Read float values from buffer.
+						for(std::size_t j=0; j<4; j++)
+						{
+							new_shader_parameter.val[j] = read_float_from_buffer();
+						}
+
+						// TODO: Remove this?
+						ShaderParam& p = new_shader_parameter;
+
+						// TODO: pre-allocate memory instead of push_back!
+
+						// Add new shader parameter to the buffer.
+						new_vslot.params.push_back(new_shader_parameter);
+					}
+				}
+
+				if(new_vslot.changed & (1<<VSLOT_SCALE))
+				{
+					new_vslot.scale = read_float_from_buffer();
+				}
+
+				if(new_vslot.changed & (1<<VSLOT_ROTATION))
+				{
+					new_vslot.rotation = read_int_from_buffer();
+				}
+
+				if(new_vslot.changed & (1<<VSLOT_OFFSET))
+				{
+					new_vslot.xoffset = read_int_from_buffer();
+					new_vslot.yoffset = read_int_from_buffer();
+				}
+
+				if(new_vslot.changed & (1<<VSLOT_SCROLL))
+				{
+					new_vslot.scrollS = read_float_from_buffer();
+					new_vslot.scrollT = read_float_from_buffer();
+				}
+
+				if(new_vslot.changed & (1<<VSLOT_LAYER))
+				{
+					new_vslot.layer = read_int_from_buffer();
+				}
+
+				if(new_vslot.changed & (1<<VSLOT_ALPHA))
+				{
+					new_vslot.alphafront = read_float_from_buffer();
+					new_vslot.alphaback = read_float_from_buffer();
+				}
+
+				if(new_vslot.changed & (1<<VSLOT_COLOR)) 
+				{
+					for(std::size_t k=0; k<3; k++)
+					{
+						new_vslot.colorscale[k] = read_float_from_buffer();
+					}
+				}
+
+				vslots_to_load --;
+			}
+		}
+
+		for(std::size_t i=0; i<map_vertex_slots.size(); i++)
+		{
+			if(preview_vslots[i] <= map_vertex_slots.size())
+			{
+				// TODO: Debug!
+				map_vertex_slots[preview_vslots[i]].next = &map_vertex_slots[i];
+			}
+		}
+
+		
+		// Check for errors.
+		if(map_vertex_slots.size() != map_header.numvslots)
+		{
+			cout << "Error: Loading vslots failed!" << endl;
+			return false;
+		}
+		else
+		{
+			cout << "Loaded " << map_vertex_slots.size() << " vslots." << endl;
+		}
+
+		return true;
+	}
+
+
 	bool Cube2MapImporter::parse_decompressed_data()
 	{
 		// Please note: Do NOT mix up the order of function calls!
@@ -1080,6 +1247,11 @@ namespace cube2_map_importer {
 		}
 
 		if(!parse_entites())
+		{
+			return false;
+		}
+
+		if(!parse_vslots())
 		{
 			return false;
 		}

@@ -4,17 +4,18 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 using namespace std;
 
 #include <zlib.h>
 
 
-// Map header structure.
 #include "OctaHeader.hpp"
 #include "CompatHeader.hpp"
 #include "MapVariables.hpp"
 #include "ExtendedEntity.hpp"
 #include "Helpers.hpp"
+#include "VSlots.hpp"
 
 
 namespace inexor {
@@ -30,6 +31,10 @@ namespace cube2_map_importer {
 	// The maximum supported number of entities.
 	#define MAXENTS 10*1000
 
+	// Maximum string length in Sauerbraten.
+	#define MAXSTRLEN 260
+
+
 	// 
 	enum CUBE2_MAP_IMPORTER_STATUS
 	{
@@ -43,7 +48,6 @@ namespace cube2_map_importer {
 	{
 		private:
 			
-
 			// Resets all data of the class members.
 			void reset_data();
 
@@ -168,7 +172,7 @@ namespace cube2_map_importer {
 
 			
 		protected:
-
+			
 
 			// 
 			CUBE2_MAP_IMPORTER_STATUS importer_status;
@@ -233,6 +237,9 @@ namespace cube2_map_importer {
 		
 			// The entities on the map
 			std::vector<ExtendedEntity> map_entities;
+
+			// 
+			std::vector<VSlot> map_vertex_slots;
 
 
 		public:
