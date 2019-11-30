@@ -187,7 +187,7 @@ namespace cube2_map_importer {
 			int lw = w, lh = h,
 				size = 0;
 
-			for(std::size_t i=0; i<levels; i++)
+			for(int i=0; i<levels; i++)
 			{
 				if(lw<=0) lw = 1;
 				if(lh<=0) lh = 1;

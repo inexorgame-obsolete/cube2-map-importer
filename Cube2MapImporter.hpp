@@ -16,6 +16,7 @@ using namespace std;
 #include "ExtendedEntity.hpp"
 #include "Helpers.hpp"
 #include "VSlots.hpp"
+#include "Octree.hpp"
 
 
 namespace inexor {
@@ -127,6 +128,12 @@ namespace cube2_map_importer {
 
 			// TODO: Move this into helper section.
 			bool is_entity_inside_world(const Entity &e) const;
+
+			// 
+			cube *newcubes(uint face = F_EMPTY, int mat = MAT_AIR);
+
+			// 
+			cube *loadchildren(const ivec &co, int size, bool &failed);
 
 
 		protected:
@@ -246,6 +253,29 @@ namespace cube2_map_importer {
 			// 
 			std::vector<VSlot> map_vertex_slots;
 
+			// 
+			cube *worldroot = newcubes(F_SOLID);
+
+			// 
+			std::size_t all_octree_nodes;
+
+			// 
+			bool loading_octree_failed;
+
+			// 
+			void setcubeext(cube &c, cubeext *ext);
+			
+			// 
+			//void convertoldsurfaces(cube &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges);
+
+			cubeext *growcubeext(cubeext *old, int maxverts);
+
+			// 
+			void loadc(cube &c, const ivec &co, int size, bool &failed);
+			
+			cubeext *newcubeext(cube &c, int maxverts, bool init);
+
+			void edgespan2vectorcube(cube &c);
 
 		public:
 			
