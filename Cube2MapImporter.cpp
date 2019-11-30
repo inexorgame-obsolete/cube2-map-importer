@@ -448,12 +448,38 @@ namespace cube2_map_importer {
 		// Support older map formats as well!
 		if(map_header.version <= 28)
 		{
-			cout << "sizeof(compatible_map_header):" << sizeof(compatible_map_header) << endl;
+			// Read every byte manually.
+			compatible_map_header.lightprecision = read_int_from_buffer();
+			compatible_map_header.lighterror = read_int_from_buffer();
+			compatible_map_header.lightlod = read_int_from_buffer();
+			compatible_map_header.ambient = read_one_byte_from_buffer();
+			compatible_map_header.watercolour[0] = read_one_byte_from_buffer();
+			compatible_map_header.watercolour[1] = read_one_byte_from_buffer();
+			compatible_map_header.watercolour[2] = read_one_byte_from_buffer();
+			compatible_map_header.blendmap = read_one_byte_from_buffer();
+			compatible_map_header.lerpangle = read_one_byte_from_buffer();
+			compatible_map_header.lerpsubdiv = read_one_byte_from_buffer();
+			compatible_map_header.lerpsubdivsize = read_one_byte_from_buffer();
+			compatible_map_header.bumperror = read_one_byte_from_buffer();
+			compatible_map_header.skylight[0] = read_one_byte_from_buffer();
+			compatible_map_header.skylight[1] = read_one_byte_from_buffer();
+			compatible_map_header.skylight[2] = read_one_byte_from_buffer();
+			compatible_map_header.lavacolour[0] = read_one_byte_from_buffer();
+			compatible_map_header.lavacolour[1] = read_one_byte_from_buffer();
+			compatible_map_header.lavacolour[2] = read_one_byte_from_buffer();
+			compatible_map_header.waterfallcolour[0] = read_one_byte_from_buffer();
+			compatible_map_header.waterfallcolour[1] = read_one_byte_from_buffer();
+			compatible_map_header.waterfallcolour[2] = read_one_byte_from_buffer();
 
-			// Read additional bytes for light precision.
-			#define EXTRA_DATA_BYTE_SIZE sizeof(compatible_map_header) - 7 * sizeof(int)
+			for(std::size_t i=0; i<10; i++)
+			{
+				compatible_map_header.reserved[i] = read_one_byte_from_buffer();
+			}
 
-			read_memory_into_structure(&compatible_map_header.lightprecision, EXTRA_DATA_BYTE_SIZE, sizeof(compatible_map_header));
+			for(std::size_t i=0; i<128; i++)
+			{
+				compatible_map_header.maptitle[i] = read_one_byte_from_buffer();
+			}
 		}
 		else
 		{
@@ -476,27 +502,27 @@ namespace cube2_map_importer {
 		{
 			if(compatible_map_header.lightprecision)
 			{
-				cout << "Light precision: " << compatible_map_header.lightprecision << endl;
+				cout << "Light precision: " << static_cast<int>(compatible_map_header.lightprecision) << endl;
 			}
 				
 			if(compatible_map_header.lighterror)
 			{
-				cout << "Light error: " << compatible_map_header.lighterror << endl;
+				cout << "Light error: " << static_cast<int>(compatible_map_header.lighterror) << endl;
 			}
         
 			if(compatible_map_header.bumperror)
 			{
-				cout << "Bump error: " << compatible_map_header.bumperror << endl;
+				cout << "Bump error: " << static_cast<int>(compatible_map_header.bumperror) << endl;
 			}
         
 			if(compatible_map_header.lightlod)
 			{
-				cout << "Light lod: " << compatible_map_header.lightlod << endl;
+				cout << "Light lod: " << static_cast<int>(compatible_map_header.lightlod) << endl;
 			}
         
 			if(compatible_map_header.ambient)
 			{
-				cout << "Ambient: " << compatible_map_header.ambient << endl;
+				cout << "Ambient: " << static_cast<int>(compatible_map_header.ambient) << endl;
 			}
         
 			if(compatible_map_header.skylight)
@@ -551,17 +577,17 @@ namespace cube2_map_importer {
 				
 			if(compatible_map_header.lerpangle)
 			{
-				cout << "Lerpangle: " << compatible_map_header.lerpangle << endl;
+				cout << "Lerpangle: " << static_cast<int>(compatible_map_header.lerpangle) << endl;
 			}
         
 			if(compatible_map_header.lerpsubdiv)
 			{
-				cout << "Lerpsubdiv: " << compatible_map_header.lerpsubdiv << endl;
+				cout << "Lerpsubdiv: " << static_cast<int>(compatible_map_header.lerpsubdiv) << endl;
 			}
 
 			if(compatible_map_header.lerpsubdivsize)
 			{
-				cout << "Lerpsubdivsize: " << compatible_map_header.lerpsubdivsize << endl;
+				cout << "Lerpsubdivsize: " << static_cast<int>(compatible_map_header.lerpsubdivsize) << endl;
 			}
 			
 			
