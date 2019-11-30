@@ -220,7 +220,7 @@ namespace cube2_map_importer {
 	#define LM_PACKW 512
 	#define LM_PACKH 512
 
-	#define dimension(orient) ((orient)>>1)
+	//#define dimension(orient) ((orient)>>1)
 
 
 	// The macro behind this has been resolved.
@@ -272,6 +272,10 @@ namespace cube2_map_importer {
 			return (vertinfo *)(this+1);
 		}
 	}; 
+
+	
+	#define PI  (3.1415927f)
+	#define RAD (PI / 180.0f)
 
 
 	struct cube

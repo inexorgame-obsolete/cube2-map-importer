@@ -1499,10 +1499,6 @@ namespace cube2_map_importer {
 	}
 
 
-	#define PI  (3.1415927f)
-	#define RAD (PI / 180.0f)
-
-
 	ushort encodenormal(const vec &n)
 	{               
 		if(n.iszero()) return 0;
@@ -1605,8 +1601,12 @@ namespace cube2_map_importer {
 				if(usemerges)
 				{
 					const mergecompat &m = merges[i];
-					int offset = -n.dot(v[0].mul(size).add(vo)),
-						dim = dimension(i), vc = C[dim], vr = R[dim];
+					
+					int offset = -n.dot(v[0].mul(size).add(vo));
+					int dim = ((i)>>1);
+					int vc = C[dim];
+					int vr = R[dim];
+					
 					loopk(4)
 					{
 						const ivec &coords = facecoords[i][k];
@@ -1671,6 +1671,7 @@ namespace cube2_map_importer {
 	{
 		bool haschildren = false;
     
+		// ?
 		int octsav = read_one_byte_from_buffer();
 
 		cout << "octsav:" << octsav << endl;
@@ -1852,7 +1853,8 @@ namespace cube2_map_importer {
 						}
 					}
 				}    
-			}                
+			}
+
 			if(hassurfs || hasnorms || hasmerges)
 			{
 				convertoldsurfaces(*c, co, size, surfaces, hassurfs, normals, hasnorms, merges, hasmerges);
@@ -1869,10 +1871,12 @@ namespace cube2_map_importer {
 				}
 				else c->material = read_unsigned_short_from_buffer();
 			}
+
 			if(octsav&0x80)
 			{
 				c->merged = read_one_byte_from_buffer();
 			}
+
 			if(octsav&0x20)
 			{
 				int surfmask, totalverts;
@@ -1902,7 +1906,7 @@ namespace cube2_map_importer {
 						
 						int layerverts = surf.numverts&MAXFACEVERTS;
 						
-						int dim = dimension(i);
+						int dim = ((i)>>1);
 						int vc = C[dim];
 						int vr = R[dim];
 						int bias = 0;
