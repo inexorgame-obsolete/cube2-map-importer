@@ -47,6 +47,33 @@ namespace cube2_map_importer {
 	// A structure which contains 8 std::shared_ptr<cube>.
 	struct CubePointArray
 	{
+		// Overloaded constructor.
+		CubePointArray(uint face)
+		{
+			for(std::size_t i=0; i<8; i++)
+			{
+				// Create a new shared pointer.
+				entry[i] = std::make_shared<cube>();
+				auto p = entry[i];
+						
+				p->children = NULL;
+				p->ext = NULL;
+				p->visible = NULL;
+				p->merged = NULL;
+
+				for(std::size_t k=0; k<3; k++)
+				{
+					p->faces[k] = face;
+				}
+
+				for(std::size_t l=0; l<6; l++)
+				{
+					p->texture[l] = DEFAULT_GEOM;
+				}
+			}
+		}
+
+		// Shared pointer to the 8 sub cubes.
 		std::shared_ptr<cube> entry[8];
 	};
 

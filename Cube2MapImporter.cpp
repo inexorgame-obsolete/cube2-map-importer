@@ -264,43 +264,10 @@ namespace cube2_map_importer {
 	CubePointArray Cube2MapImporter::generate_new_cubes(uint face, int mat)
 	{
 		// A structure which contains 8 std::shared_ptr<cube>.
-		CubePointArray new_cubes;
+		CubePointArray new_cubes(face);
 		
-		for(std::size_t i=0; i<8; i++)
-		{
-			// Create a new shared pointer.
-			new_cubes.entry[i] = std::make_shared<cube>();
-		}
-
-		// TODO: Merge loops!
-		for(std::size_t i=0; i<8; i++)
-		{
-			auto p = new_cubes.entry[i];
-			
-			p->children = NULL;
-			p->ext = NULL;
-			p->visible = NULL;
-			p->merged = NULL;
-
-			for(std::size_t k=0; k<3; k++)
-			{
-				p->faces[k] = face;
-			}
-
-			for(std::size_t l=0; l<6; l++)
-			{
-				p->texture[l] = DEFAULT_GEOM;
-			}
-
-			int x = 0;
-		}
-		
+		// Increase total number of octree nodes by 1.
 		all_octree_nodes++;
-
-		for(std::size_t o=0; o<8; o++)
-		{
-			auto test_ = new_cubes.entry[o];
-		}
 
 		// Return a structure which contains 8 new std::shared_ptr<cube>.
 		return new_cubes;
@@ -2033,11 +2000,13 @@ namespace cube2_map_importer {
 		}
 
 		if(haschildren)
-		{
+		{	
+			// This node has children, load them as well!
 			c->children = load_octree_children(co, size>>1, failed);
 		}
 		else
 		{
+			// This node has no children.
 			c->children = NULL;
 		}
 	}
@@ -2049,6 +2018,7 @@ namespace cube2_map_importer {
 		
 		for(std::size_t i=0; i<8; i++)
 		{
+			// Fill the generated cubes with data!
 			fill_cubes_with_data(new_cubes.entry[i], ivec(i, co.x, co.y, co.z, size), size, failed);
 
 			if(failed) break;
