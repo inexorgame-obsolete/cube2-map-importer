@@ -15,12 +15,12 @@ namespace cube2_map_importer {
 			version = 0;
 			headersize = 0;
 			worldsize = 0;
-			numents = 0;
-			numpvs = 0;
+			number_of_entities = 0;
+			number_of_pvs_trees = 0;
 			lightmaps = 0;
 			blendmap = 0;
-			numvars = 0;
-			numvslots = 0;
+			number_of_map_variables = 0;
+			number_of_vslots = 0;
 		}
 
 		// The magic number "OCTA".
@@ -41,12 +41,12 @@ namespace cube2_map_importer {
 		// The number of entities in the map.
 		// The maximum number of entities
 		// is defined by MAXENTS.
-		int numents;
+		int number_of_entities;
     
 		// The number of PVS trees.
 		// A PVS tree is a data structure which
 		// describes if a part of the map is visible.
-		int numpvs;
+		int number_of_pvs_trees;
     
 		// The number of light maps.
 		int lightmaps;
@@ -55,10 +55,10 @@ namespace cube2_map_importer {
 		int blendmap;
     
 		// The number of variables in the map.
-		int numvars;
+		int number_of_map_variables;
     
 		// The number of v slots.
-		int numvslots;
+		int number_of_vslots;
 	};
 
 };

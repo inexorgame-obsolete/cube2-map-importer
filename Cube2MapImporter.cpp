@@ -315,6 +315,8 @@ namespace cube2_map_importer {
 
 		// Are we done decompressing?
 		bool decompression_finished = false;
+		
+		cout << "----------------------------------------------------------------------------" << endl;
 
 		cout << "Starting data decompression." << endl;
 		
@@ -392,7 +394,11 @@ namespace cube2_map_importer {
 
 	bool Cube2MapImporter::parse_map_header()
 	{
+		cout << "----------------------------------------------------------------------------" << endl;
+
 		cout << "Parsing map header." << endl;
+
+		// TODO: Refactor this!
 
 		// Define the number of bytes from the structure which are filled out.
 		#define MAP_OCTA_HEADER_READ_SIZE 7 * sizeof(int)
@@ -402,11 +408,6 @@ namespace cube2_map_importer {
 		read_memory_into_structure(&map_header, MAP_OCTA_HEADER_READ_SIZE, MAP_OCTA_HEADER_READ_SIZE);
 
 		cout << "Validating map header." << endl;
-
-		// Copy magic number and null-terminate it automatically.
-		std::string magic_number(map_header.magic);
-
-		cout << "Magic number: " << magic_number.c_str() << endl;
 		
 		// Check if magic number "OCTA" is valid.
 		if(0 != std::memcmp(map_header.magic, "OCTA", 4))
@@ -414,6 +415,10 @@ namespace cube2_map_importer {
 			// Something is wrong with the header section of this map!
 			cout << "Error: Invalid magic number in map header!" << endl;
 			return false;
+		}
+		else
+		{
+			cout << "Magic number: OCTA" << endl;
 		}
 		
 		cout << "Worldsize: " << map_header.worldsize << endl;
@@ -425,11 +430,11 @@ namespace cube2_map_importer {
 			return false;
 		}
 		
-		cout << "Entities: " << map_header.numents << endl;
+		cout << "Entities: " << map_header.number_of_entities << endl;
 
 		// Check if number of entites is valid.
 		// Please note that a map can have 0 entities though!
-		if(map_header.numents < 0)
+		if(map_header.number_of_entities < 0)
 		{
 			cout << "Error: Invalid amount of entites!" << endl;
 			return false;
@@ -527,12 +532,7 @@ namespace cube2_map_importer {
         
 			if(compatible_map_header.skylight)
 			{
-				RGBColor output_color;
-				
-				//  (int(chdr.skylight[0])<<16) | (int(chdr.skylight[1])<<8) | int(chdr.skylight[2]));
-
-				// Convert 3 bytes to RGB value.
-				convert_3_bytes_to_rgb_code(compatible_map_header.skylight[0], compatible_map_header.skylight[1], compatible_map_header.skylight[2], output_color);
+				RGBColor output_color = convert_3_bytes_to_rgb(compatible_map_header.skylight);
 
 				// Print color as RGB value.
 				cout << "Skylight: ";
@@ -541,10 +541,7 @@ namespace cube2_map_importer {
         
 			if(compatible_map_header.watercolour)
 			{
-				RGBColor output_color;
-				
-				// Convert 3 bytes to RGB value.
-				convert_3_bytes_to_rgb_code(compatible_map_header.watercolour[0], compatible_map_header.watercolour[1], compatible_map_header.watercolour[2], output_color);
+				RGBColor output_color = convert_3_bytes_to_rgb(compatible_map_header.watercolour);
 
 				// Print color as RGB value.
 				cout << "Watercolor: ";
@@ -553,10 +550,7 @@ namespace cube2_map_importer {
         
 			if(compatible_map_header.waterfallcolour)
 			{
-				RGBColor output_color;
-
-				// Convert 3 bytes to RGB value.
-				convert_3_bytes_to_rgb_code(compatible_map_header.waterfallcolour[0], compatible_map_header.waterfallcolour[1], compatible_map_header.waterfallcolour[2], output_color);
+				RGBColor output_color = convert_3_bytes_to_rgb(compatible_map_header.waterfallcolour);
 				
 				// Print color as RGB value.
 				cout << "Waterfallcolour: ";
@@ -565,11 +559,8 @@ namespace cube2_map_importer {
         
 			if(compatible_map_header.lavacolour)
 			{
-				RGBColor output_color;
+				RGBColor output_color = convert_3_bytes_to_rgb(compatible_map_header.lavacolour);
 
-				// Convert 3 bytes to RGB value.
-				convert_3_bytes_to_rgb_code(compatible_map_header.lavacolour[0], compatible_map_header.lavacolour[1], compatible_map_header.lavacolour[2], output_color);
-				
 				// Print color as RGB value.
 				cout << "Lavacolour: ";
 				print_rgb_color_to_stdcout(output_color);
@@ -615,13 +606,13 @@ namespace cube2_map_importer {
 				map_header.blendmap = compatible_map_header.blendmap;
 			}
 
-			map_header.numvars = 0;
+			map_header.number_of_map_variables = 0;
 
-			map_header.numvslots = 0;
+			map_header.number_of_vslots = 0;
 		}
 		else if(map_header.version <= 29)
 		{
-			map_header.numvslots = 0;
+			map_header.number_of_vslots = 0;
 		}
 
 		cout << "World size: " << map_header.worldsize << endl;
@@ -641,11 +632,17 @@ namespace cube2_map_importer {
 	bool Cube2MapImporter::is_integer_map_variable_a_color_value(const std::string& map_variable_name)
 	{
 		// TODO: Refactor this: make it detect that automatically.
-		const std::size_t number_of_entries = 12;
+		const std::size_t number_of_entries = 27;
 
 		// The map variables which are rgb color codes.
-		const std::string color_map_variables[number_of_entries] = {"lavacolour", "skylight", "watercolour", "cloudcolour",
-		"fogcolour", "fogdomecolour", "skyboxcolour", "ambient", "shadowmapambient", "sunlight", "cloudboxcolor", "waterfallcolour"}; 
+		const std::string color_map_variables[number_of_entries] = {"skylight", "cloudcolour",
+		"fogcolour", "fogdomecolour", "skyboxcolour", "ambient", "shadowmapambient", "sunlight", "cloudboxcolor",
+		"watercolour", "water2colour", "water3colour", "water4colour",
+		"waterfallcolour", "water2fallcolour", "water2fallcolour", "water2fallcolour",
+		"lavacolour", "lava2colour", "lava3colour", "lava4colour",
+		"cloudboxcolour", "minimapcolour", "glasscolour"}; 
+		
+		// TODO: Implement waterfallcolour2...
 
 		// Is the name of the map variable equal to one of the list above?
 		for(std::size_t i=0; i<number_of_entries; i++)
@@ -670,37 +667,30 @@ namespace cube2_map_importer {
 	}
 
 	
-	void Cube2MapImporter::convert_3_bytes_to_rgb_code(const unsigned char& r_value, const unsigned char& g_value, const unsigned char& b_value, RGBColor& color_value)
+	RGBColor Cube2MapImporter::convert_3_bytes_to_rgb(const unsigned char* components)
 	{
-		int integer_value = 0;
-		unsigned char byte_values[4];
+		RGBColor return_value;
 
-		byte_values[0] = 0x0;
-		byte_values[1] = r_value;
-		byte_values[2] = g_value;
-		byte_values[3] = b_value;
-		
-		// Copy memory.
-		std::memcpy(&integer_value, &byte_values[0], sizeof(integer_value));
+		// Convert to RGB by shifting bits.
+		return_value.r = static_cast<int>(components[0]) << 16;
+		return_value.r = static_cast<int>(components[1]) << 8;
+		return_value.r = static_cast<int>(components[2]);
 
-		// Convert color code.
-		convert_integer_value_to_rgb_code(integer_value, color_value);
+		return return_value;
 	}
 
 
 	bool Cube2MapImporter::parse_map_variables()
 	{
-		// Number of map variables.
-		cout << "Map variables: " << map_header.numvars << endl;
+		cout << "Map variables: " << map_header.number_of_map_variables << endl;
 
-		
 		// Check if we read something wrong!
-		if(map_header.numvars > 0)
+		if(map_header.number_of_map_variables > 0)
 		{
 			cout << "----------------------------------------------------------------------------" << endl;
 			
 			// Loop through all variables and load them.
-			for(int i=0; i<map_header.numvars; i++)
+			for(int i=0; i<map_header.number_of_map_variables; i++)
 			{
 				// The new variable which is being read.
 				MapVariable new_map_variable;
@@ -810,16 +800,15 @@ namespace cube2_map_importer {
 			}
 
 			// Check if the number of variables to read is valid.
-			if(map_header.numvars > MAX_NUMVARS)
+			if(map_header.number_of_map_variables > MAX_NUMVARS)
 			{
 				// Something went wrong when parsing the number of variables in the map.
-				cout << "Warning: more than " << MAX_NUMVARS << " to read (" << map_header.numvars << ")!" << endl;
+				cout << "Warning: more than " << MAX_NUMVARS << " to read (" << map_header.number_of_map_variables << ")!" << endl;
 				cout << "Cube2: Sauerbraten would have aborted reading after " << MAX_NUMVARS << " variables!" << endl;
 			}
 			
 			cout << "----------------------------------------------------------------------------" << endl;
 		}
-
 
 		return true;
 	}
@@ -927,7 +916,6 @@ namespace cube2_map_importer {
 			// we can have as many texture levels as we want.
 			unsigned short how_many_texture_levels = read_unsigned_short_from_buffer();
 
-			// Print the number of bytes to load for texture data.
 			cout << "Loading " << how_many_texture_levels << " texture MRU bytes." << endl;
 				
 			// Allocate memory ahead of time.
@@ -1016,7 +1004,7 @@ namespace cube2_map_importer {
 		extra_entity_info.resize(extra_entity_info_size);
 
 		// How many entities to load.
-		int number_of_entities_to_load = std::min(map_header.numents, MAXENTS);
+		int number_of_entities_to_load = std::min(map_header.number_of_entities, MAXENTS);
 
 		cout << "Entities: " << number_of_entities_to_load << "." << endl;
 
@@ -1109,21 +1097,20 @@ namespace cube2_map_importer {
 
 		cout << "Loaded " << map_entities.size() << " entities." << endl;
 
-
 		// TODO: Remove this! We should be able to load as many entites as we like!
 		// TODO: Does it really work this way? Didn't we already read all the stuff anyways?
 
 		// Check if there are too many entites in the world.
-		if(map_header.numents > MAXENTS) 
+		if(map_header.number_of_entities > MAXENTS) 
 		{
 			// Do not read the following entites but move the read position
 			// in the stream forward anyways.
 			int how_many_bytes_to_skip = 0;
 
-			cout << "Warning: map has " << map_header.numents << " entities!" << endl;
+			cout << "Warning: map has " << map_header.number_of_entities << " entities!" << endl;
 				
 			// How many entites are we ignoring?
-			int how_many_entites_not_to_read = map_header.numents - MAXENTS;
+			int how_many_entites_not_to_read = map_header.number_of_entities - MAXENTS;
 
 			// How many bytes for an entity.
 			int byte_size_of_entity_structure = 0;
@@ -1153,18 +1140,18 @@ namespace cube2_map_importer {
 
 	bool Cube2MapImporter::parse_vslots()
 	{
-		cout << "VSlots: " << map_header.numvslots << "." << endl;
+		cout << "VSlots: " << map_header.number_of_vslots << "." << endl;
 
 		// Initialise a vector of VSlots for preview.
 		// Allocate the required memory and fill it with -1.
 		// TODO: Check if we should change the vector to int?
-		std::vector<std::size_t> preview_vslots(map_header.numvslots, -1);
+		std::vector<int> preview_vslots(map_header.number_of_vslots, -1);
 			
 		// TODO: reserve memory in advance to minimize allocation.
 
 		// How many VSlots to load?
 		// TODO: Check if we should change to int?
-		std::size_t vslots_to_load = map_header.numvslots;
+		int vslots_to_load = map_header.number_of_vslots;
 
 		// Continue as long as there are VSlots to be loaded.
 		while(vslots_to_load > 0)
@@ -1193,8 +1180,10 @@ namespace cube2_map_importer {
 			}
 			else
 			{
+				std::size_t array_index = map_vertex_slots.size();
+
 				// Read size from buffer.
-				preview_vslots[map_vertex_slots.size()] = read_int_from_buffer();
+				preview_vslots[array_index] = read_int_from_buffer();
 					
 				// A new vslot.
 				VSlot new_vslot(NULL, map_vertex_slots.size());
@@ -1233,13 +1222,9 @@ namespace cube2_map_importer {
 							new_shader_parameter.val[j] = read_float_from_buffer();
 						}
 
-						// TODO: Remove this?
 						ShaderParam& p = new_shader_parameter;
 						
 						cout << "Shader parameter " << p.name.c_str() << ": " << p.val[0] << " " << p.val[1] << " " << p.val[2] << " " << p.val[3] << endl;
-
-
-						// TODO: pre-allocate memory instead of push_back!
 
 						// Add new shader parameter to the buffer.
 						new_vslot.params.push_back(new_shader_parameter);
@@ -1300,9 +1285,8 @@ namespace cube2_map_importer {
 			}
 		}
 
-		
 		// Check for errors.
-		if(map_vertex_slots.size() != map_header.numvslots)
+		if(map_vertex_slots.size() != map_header.number_of_vslots)
 		{
 			cout << "Error: Loading vslots failed!" << endl;
 			return false;

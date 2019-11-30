@@ -171,7 +171,7 @@ namespace cube2_map_importer {
 			void convert_integer_value_to_rgb_code(const int& integer_value, RGBColor& output_color);
 			
 			// 
-			void convert_3_bytes_to_rgb_code(const unsigned char& r_value, const unsigned char& g_value, const unsigned char& b_value, RGBColor& color_value);
+			RGBColor convert_3_bytes_to_rgb(const unsigned char* color_components);
 			
 			// 
 			void print_rgb_color_to_stdcout(RGBColor output_color);

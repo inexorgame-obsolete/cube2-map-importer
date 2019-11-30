@@ -45,7 +45,8 @@ int main(int argc, char* argv[])
 
 		cout << "----------------------------------------------------------------------------" << endl;
 
-		cin.get();
+		//cin.get();
+		cout << endl << endl << endl;
 	}
 
 	cin.get();
