@@ -37,11 +37,15 @@ int main(int argc, char* argv[])
 		// is the path and name to the program itself.
 		std::size_t array_index = i - 1;
 
-		maps[array_index].load_map_file(argv[i]);
+		//maps[/*array_index*/ 0].load_map_file(argv[i]);
+
+		inexor::cube2_map_importer::Cube2MapImporter cubeMap;
+
+		cubeMap.load_map_file(argv[i]);
 
 		cout << "----------------------------------------------------------------------------" << endl;
 	
-		cin.get();
+		//cin.get();
 	}
 
 	cin.get();

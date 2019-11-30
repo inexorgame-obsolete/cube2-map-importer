@@ -538,8 +538,11 @@ namespace cube2_map_importer {
 				// Print info message about maptitle
 				cout << "Maptitle: " << map_title.c_str() << endl;
 
-				// Print info message about the Cube2 console string coloring.
-				cout << "Info: The string coloring has been removed from this maptitle" << endl;
+				if(clean_map_title.find("Misan") != string::npos)
+				{
+					cout << "Misan found!" << endl;
+				}
+
 			}
 
 			if(map_header.blendmap)
@@ -548,6 +551,7 @@ namespace cube2_map_importer {
 			}
 
 			map_header.numvars = 0;
+
 			map_header.numvslots = 0;
 		}
 		else if(map_header.version <= 29)
@@ -563,7 +567,6 @@ namespace cube2_map_importer {
 			world_scale++;
 		}
 		
-		// Print the world scale.
 		cout << "World scale: " << world_scale << endl;
 
 		return true;
@@ -607,9 +610,12 @@ namespace cube2_map_importer {
 		// Number of map variables.
 		cout << "Map variables: " << map_header.numvars << endl;
 
+		
 		// Check if we read something wrong!
 		if(map_header.numvars > 0)
 		{
+			cout << "----------------------------------------------------------------------------" << endl;
+			
 			// Loop through all variables and load them.
 			for(int i=0; i<map_header.numvars; i++)
 			{
@@ -697,6 +703,12 @@ namespace cube2_map_importer {
 
 							// Print cleaned map title.
 							cout << clean_map_title.c_str() << endl;
+
+							if(clean_map_title.find("Misan") != string::npos)
+							{
+								cout << "Misan found!" << endl;
+							}
+
 						}
 						else
 						{
@@ -721,7 +733,10 @@ namespace cube2_map_importer {
 				cout << "Warning: more than " << MAX_NUMVARS << " to read (" << map_header.numvars << ")!" << endl;
 				cout << "Cube2: Sauerbraten would have aborted reading after " << MAX_NUMVARS << " variables!" << endl;
 			}
+			
+			cout << "----------------------------------------------------------------------------" << endl;
 		}
+
 
 		return true;
 	}
@@ -918,9 +933,8 @@ namespace cube2_map_importer {
 		// How many entities to load.
 		int number_of_entities_to_load = std::min(map_header.numents, MAXENTS);
 
-		cout << "There are " << number_of_entities_to_load << " entities to load." << endl;
+		cout << "Entities: " << number_of_entities_to_load << "." << endl;
 
-		// 
 		if(number_of_entities_to_load > 0)
 		{
 			// Load all entites from the map.
@@ -1119,9 +1133,6 @@ namespace cube2_map_importer {
 						// The length of the name of the shader parameter.
 						int shader_param_name_length = read_unsigned_short_from_buffer();
 
-						// Print shader parameter name.
-						cout << "Reading shader parameter: " << new_shader_parameter.name.c_str() << endl;
-
 						// Limit the length of the name of the shader parameter.
 						shader_param_name_length = std::min(shader_param_name_length, MAXSTRLEN-1);
 
@@ -1130,7 +1141,7 @@ namespace cube2_map_importer {
 						new_shader_parameter.type = SHPARAM_LOOKUP;
 						new_shader_parameter.index = -1;
 						new_shader_parameter.loc = -1;
-					
+											
 						// Read float values from buffer.
 						for(std::size_t j=0; j<4; j++)
 						{
@@ -1139,6 +1150,9 @@ namespace cube2_map_importer {
 
 						// TODO: Remove this?
 						ShaderParam& p = new_shader_parameter;
+						
+						cout << "Shader parameter " << p.name.c_str() << ": " << p.val[0] << " " << p.val[1] << " " << p.val[2] << " " << p.val[3] << endl;
+
 
 						// TODO: pre-allocate memory instead of push_back!
 
