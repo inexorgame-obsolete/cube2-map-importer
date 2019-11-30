@@ -44,8 +44,8 @@ int main(int argc, char* argv[])
 		cubeMap.load_map_file(argv[i]);
 
 		cout << "----------------------------------------------------------------------------" << endl;
-	
-		//cin.get();
+
+		cin.get();
 	}
 
 	cin.get();

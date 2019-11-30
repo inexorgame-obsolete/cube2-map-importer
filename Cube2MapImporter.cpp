@@ -383,17 +383,23 @@ namespace cube2_map_importer {
 		return true;
 	}
 
-	
+
+	void Cube2MapImporter::print_rgb_color_to_stdcout(RGBColor color)
+	{
+		cout << "rgb(" << color.r << "," << color.g << "," << color.b << ")" << endl;
+	}
+
+
 	bool Cube2MapImporter::parse_map_header()
 	{
 		cout << "Parsing map header." << endl;
 
 		// Define the number of bytes from the structure which are filled out.
-		#define MAP_HEADER_READ_SIZE 7 * sizeof(int)
+		#define MAP_OCTA_HEADER_READ_SIZE 7 * sizeof(int)
 
 		// Read most of the map header, but not everything.
 		// blendmap, numvars and numvslots will be read later.
-		read_memory_into_structure(&map_header, MAP_HEADER_READ_SIZE, MAP_HEADER_READ_SIZE);
+		read_memory_into_structure(&map_header, MAP_OCTA_HEADER_READ_SIZE, MAP_OCTA_HEADER_READ_SIZE);
 
 		cout << "Validating map header." << endl;
 
@@ -442,9 +448,12 @@ namespace cube2_map_importer {
 		// Support older map formats as well!
 		if(map_header.version <= 28)
 		{
+			cout << "sizeof(compatible_map_header):" << sizeof(compatible_map_header) << endl;
+
 			// Read additional bytes for light precision.
-			#define EXTRA_DATA_BYTE_SIZE sizeof(CompatibilityMapHeader) - 7*sizeof(int)
-			read_memory_into_structure(&compatible_map_header.lightprecision, EXTRA_DATA_BYTE_SIZE, sizeof(OctaHeader));
+			#define EXTRA_DATA_BYTE_SIZE sizeof(compatible_map_header) - 7 * sizeof(int)
+
+			read_memory_into_structure(&compatible_map_header.lightprecision, EXTRA_DATA_BYTE_SIZE, sizeof(compatible_map_header));
 		}
 		else
 		{
@@ -452,7 +461,6 @@ namespace cube2_map_importer {
 			int extra = 0;
 			if(map_header.version <= 29) extra++;
 
-			// Print message about the extra byte size to read.
 			cout << "Extra bytes: " << extra << endl;
 				
 			// Size of the rest of the bytes to read.
@@ -493,22 +501,52 @@ namespace cube2_map_importer {
         
 			if(compatible_map_header.skylight)
 			{
-				cout << "Skylight: " << (int(compatible_map_header.skylight[0])<<16) << ", " << (int(compatible_map_header.skylight[1])<<8) << ", " << int(compatible_map_header.skylight[2]) << endl;
+				RGBColor output_color;
+				
+				//  (int(chdr.skylight[0])<<16) | (int(chdr.skylight[1])<<8) | int(chdr.skylight[2]));
+
+				// Convert 3 bytes to RGB value.
+				convert_3_bytes_to_rgb_code(compatible_map_header.skylight[0], compatible_map_header.skylight[1], compatible_map_header.skylight[2], output_color);
+
+				// Print color as RGB value.
+				cout << "Skylight: ";
+				print_rgb_color_to_stdcout(output_color);
 			}
         
 			if(compatible_map_header.watercolour)
 			{
-				cout << "Watercolour: " << (int(compatible_map_header.watercolour[0])<<16) << ", " << (int(compatible_map_header.watercolour[1])<<8) << ", " << int(compatible_map_header.watercolour[2]) << endl;
+				RGBColor output_color;
+				
+				// Convert 3 bytes to RGB value.
+				convert_3_bytes_to_rgb_code(compatible_map_header.watercolour[0], compatible_map_header.watercolour[1], compatible_map_header.watercolour[2], output_color);
+
+				// Print color as RGB value.
+				cout << "Watercolor: ";
+				print_rgb_color_to_stdcout(output_color);
 			}
         
 			if(compatible_map_header.waterfallcolour)
 			{
-				cout << "Waterfallcolour: " << (int(compatible_map_header.waterfallcolour[0])<<16) << ", " << (int(compatible_map_header.waterfallcolour[1])<<8) << ", " << int(compatible_map_header.waterfallcolour[2]) << endl;
+				RGBColor output_color;
+
+				// Convert 3 bytes to RGB value.
+				convert_3_bytes_to_rgb_code(compatible_map_header.waterfallcolour[0], compatible_map_header.waterfallcolour[1], compatible_map_header.waterfallcolour[2], output_color);
+				
+				// Print color as RGB value.
+				cout << "Waterfallcolour: ";
+				print_rgb_color_to_stdcout(output_color);
 			}
         
 			if(compatible_map_header.lavacolour)
 			{
-				cout << "Lavacolour: " << (int(compatible_map_header.lavacolour[0])<<16) << ", " << (int(compatible_map_header.lavacolour[1])<<8) << ", " << int(compatible_map_header.lavacolour[2]) << endl;
+				RGBColor output_color;
+
+				// Convert 3 bytes to RGB value.
+				convert_3_bytes_to_rgb_code(compatible_map_header.lavacolour[0], compatible_map_header.lavacolour[1], compatible_map_header.lavacolour[2], output_color);
+				
+				// Print color as RGB value.
+				cout << "Lavacolour: ";
+				print_rgb_color_to_stdcout(output_color);
 			}
 				
 			if(compatible_map_header.lerpangle)
@@ -542,12 +580,13 @@ namespace cube2_map_importer {
 				{
 					cout << "Misan found!" << endl;
 				}
-
 			}
 
 			if(map_header.blendmap)
 			{
 				cout << "Blendmap: " << map_header.blendmap << endl;
+
+				map_header.blendmap = compatible_map_header.blendmap;
 			}
 
 			map_header.numvars = 0;
@@ -576,11 +615,11 @@ namespace cube2_map_importer {
 	bool Cube2MapImporter::is_integer_map_variable_a_color_value(const std::string& map_variable_name)
 	{
 		// TODO: Refactor this: make it detect that automatically.
-		const std::size_t number_of_entries = 11;
+		const std::size_t number_of_entries = 12;
 
 		// The map variables which are rgb color codes.
 		const std::string color_map_variables[number_of_entries] = {"lavacolour", "skylight", "watercolour", "cloudcolour",
-		"fogcolour", "fogdomecolour", "skyboxcolour", "ambient", "shadowmapambient", "sunlight", "cloudboxcolor"}; 
+		"fogcolour", "fogdomecolour", "skyboxcolour", "ambient", "shadowmapambient", "sunlight", "cloudboxcolor", "waterfallcolour"}; 
 
 		// Is the name of the map variable equal to one of the list above?
 		for(std::size_t i=0; i<number_of_entries; i++)
@@ -602,6 +641,24 @@ namespace cube2_map_importer {
 		color_value.r = (integer_value & 0x00FF0000) >> 16;
 		color_value.g = (integer_value & 0x0000FF00) >> 8;
 		color_value.b = (integer_value & 0x000000FF) >> 0;
+	}
+
+	
+	void Cube2MapImporter::convert_3_bytes_to_rgb_code(const unsigned char& r_value, const unsigned char& g_value, const unsigned char& b_value, RGBColor& color_value)
+	{
+		int integer_value = 0;
+		unsigned char byte_values[4];
+
+		byte_values[0] = 0x0;
+		byte_values[1] = r_value;
+		byte_values[2] = g_value;
+		byte_values[3] = b_value;
+		
+		// Copy memory.
+		std::memcpy(&integer_value, &byte_values[0], sizeof(integer_value));
+
+		// Convert color code.
+		convert_integer_value_to_rgb_code(integer_value, color_value);
 	}
 
 
@@ -658,7 +715,7 @@ namespace cube2_map_importer {
 							convert_integer_value_to_rgb_code(new_map_variable.value_int, new_map_variable.value_color);
 							
 							// Print color as RGB value.
-							cout << "rgb(" << new_map_variable.value_color.r << ", " << new_map_variable.value_color.g << ", " << new_map_variable.value_color.b << ")" << endl;
+							print_rgb_color_to_stdcout(new_map_variable.value_color);
 						}
 						else
 						{
@@ -756,7 +813,6 @@ namespace cube2_map_importer {
 			// We need to read 1 more byte since the string is null-terminates.
 			skip_reading_buffer_bytes(1);
 
-			// Print the name of the game to the console.
 			cout << "game name: " << game_name.c_str() << endl;
 
 			// For which game was this made?
@@ -779,6 +835,9 @@ namespace cube2_map_importer {
 				{
 					// No, some other crazy project.
 					map_for_eisenstern_rpg = false;
+
+					// Well, this is some other map format then?
+					cout << "Warning: This is not a Cube2 map and not an Eisenstern map either!" << endl;
 				}
 			}
 		}
