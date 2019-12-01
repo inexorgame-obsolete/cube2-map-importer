@@ -44,40 +44,6 @@ namespace cube2_map_importer {
 	};
 	
 
-	// A structure which contains 8 std::shared_ptr<cube>.
-	struct CubePointArray
-	{
-		// Overloaded constructor.
-		CubePointArray(uint face)
-		{
-			for(std::size_t i=0; i<8; i++)
-			{
-				// Create a new shared pointer.
-				entry[i] = std::make_shared<cube>();
-				auto p = entry[i];
-						
-				p->children = NULL;
-				p->ext = NULL;
-				p->visible = NULL;
-				p->merged = NULL;
-
-				for(std::size_t k=0; k<3; k++)
-				{
-					p->faces[k] = face;
-				}
-
-				for(std::size_t l=0; l<6; l++)
-				{
-					p->texture[l] = DEFAULT_GEOM;
-				}
-			}
-		}
-
-		// Shared pointer to the 8 sub cubes.
-		std::shared_ptr<cube> entry[8];
-	};
-
-
 	// 
 	class Cube2MapImporter
 	{
@@ -164,10 +130,11 @@ namespace cube2_map_importer {
 			bool is_entity_inside_world(const Entity &e) const;
 			
 			// 
-			CubePointArray generate_new_cubes(uint face = F_EMPTY, int mat = MAT_AIR);
+			std::array<std::shared_ptr<cube>, 8> generate_8_sub_cubes(uint face = F_EMPTY, int mat = MAT_AIR);
 
 			// 
-			std::shared_ptr<cube> load_octree_children(const ivec &co, int size, bool &failed);
+			std::array<std::shared_ptr<cube>, 8> load_octree_children(const ivec &co, int size, bool &failed);
+			
 
 		protected:
 
@@ -309,6 +276,7 @@ namespace cube2_map_importer {
 
 			// 
 			void edgespan2vectorcube(cube &c);
+
 
 		public:
 			

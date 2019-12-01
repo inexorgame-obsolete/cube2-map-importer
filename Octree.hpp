@@ -4,6 +4,8 @@
 
 #include "Entity.hpp"
 
+#include <array>
+
 
 namespace inexor {
 namespace cube2_map_importer {
@@ -317,24 +319,44 @@ namespace cube2_map_importer {
 
 	struct cube
 	{
-		//cube *children;          // points to 8 cube structures which are its children, or NULL. -Z first, then -Y, -X
+		// points to 8 cube structures which are its children, or NULL. -Z first, then -Y, -X
+		// We use std::array to enable multiple (8) return values for functions.
+		std::array<std::shared_ptr<cube>, 8> children;
 
-		std::shared_ptr<cube> children;
+		// IMPORTANT NOTE: We can't initialise 'children' in the constructor
+		// since this will cause a recursion and a stack overflow!
 
-		cubeext *ext;            // extended info for the cube
+		// TODO: std::shared_ptr<cubeext> extended_cube_info;
+		
+		// extended info for the cube
+		cubeext* ext;
+
 		union
 		{
-			uchar edges[12];     // edges of the cube, each uchar is 2 4bit values denoting the range.
-								 // see documentation jpgs for more info.
-			uint faces[3];       // 4 edges of each dimension together representing 2 perpendicular faces
+			// edges of the cube, each uchar is 2 4bit values denoting the range.
+			// see documentation jpgs for more info.
+			uchar edges[12];
+			
+			// 4 edges of each dimension together representing 2 perpendicular faces.
+			uint faces[3];
 		};
-		ushort texture[6];       // one for each face. same order as orient.
-		ushort material;         // empty-space material
-		uchar merged;            // merged faces of the cube
+		
+		// one for each face. same order as orient.
+		ushort texture[6];
+
+		// empty-space material.
+		ushort material;
+
+		// merged faces of the cube.
+		uchar merged;
+		
 		union
 		{
-			uchar escaped;       // mask of which children have escaped merges
-			uchar visible;       // visibility info for faces
+			// mask of which children have escaped merges.
+			uchar escaped;
+
+			// visibility info for faces.
+			uchar visible;
 		};
 	};
 
