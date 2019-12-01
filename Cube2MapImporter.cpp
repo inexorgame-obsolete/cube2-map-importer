@@ -23,6 +23,7 @@ namespace cube2_map_importer {
 		extra_game_information.clear();
 		texture_mru.clear();
 		all_octree_nodes = 0;
+		octree_world_root = NULL;
 	}
 
 
@@ -261,13 +262,14 @@ namespace cube2_map_importer {
 
 	std::array<std::shared_ptr<cube>, 8> Cube2MapImporter::generate_8_sub_cubes(uint face, int material)
 	{
-		// A structure which contains 8 std::shared_ptr<cube>.
 		std::array<std::shared_ptr<cube>, 8> new_sub_cubes;
 		
 		for(std::size_t i=0; i<8; i++)
 		{
 			// Create a new shared pointer for this sub cubde.
 			new_sub_cubes[i] = std::make_shared<cube>();
+
+			// TODO: Move this to cube::cube() ?
 			new_sub_cubes[i]->ext = NULL;
 			new_sub_cubes[i]->visible = NULL;
 			new_sub_cubes[i]->merged = NULL;
@@ -1642,8 +1644,21 @@ namespace cube2_map_importer {
 	}
 
 
+	int counter = 0;
+
 	void Cube2MapImporter::fill_cubes_with_data(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed)
 	{
+		counter++;
+
+		cout << counter << endl;
+
+		if(193==counter)
+		{
+			cout << " oh oh " << endl;
+		}
+
+		cout << "Cube2MapImporter::fill_cubes_with_data(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed)" << endl;
+		
 		bool haschildren = false;
     
 		int octsav = read_one_byte_from_buffer();
@@ -2029,8 +2044,6 @@ namespace cube2_map_importer {
 		}
 		else
 		{
-			// This node has no children.
-
 			for(std::size_t i=0; i<8; i++)
 			{
 				c->children[i] = NULL;
@@ -2042,17 +2055,20 @@ namespace cube2_map_importer {
 	std::array<std::shared_ptr<cube>, 8> Cube2MapImporter::load_octree_children(const ivec &co, int size, bool &failed)
 	{
 		// Generate 8 new sub cubes.
-		std::array<std::shared_ptr<cube>, 8> new_cube = generate_8_sub_cubes();
+		std::array<std::shared_ptr<cube>, 8> generated_sub_cubes = generate_8_sub_cubes();
 		
 		for(std::size_t i=0; i<8; i++)
 		{
-			// Fill the generated cubes with data!
-			fill_cubes_with_data(new_cube[i], ivec(i, co.x, co.y, co.z, size), size, failed);
+			// Fill the sub cubes with data.
+			fill_cubes_with_data(generated_sub_cubes[i], ivec(i, co.x, co.y, co.z, size), size, failed);
 
-			if(failed) break;
+			if(failed)
+			{
+				break;
+			}
 		}
 
-		return new_cube;
+		return generated_sub_cubes;
 	}
 	
 
@@ -2061,13 +2077,7 @@ namespace cube2_map_importer {
 		cout << "Loading octree geometry." << endl;
 
 		// Load the root of the octree game world.
-		auto sub_cubes = load_octree_children(ivec(0, 0, 0), map_header.worldsize >> 1, loading_octree_failed);
-
-		for(std::size_t i=0; i<8; i++)
-		{
-			// Copy sub cubes into octree world.
-			octree_world_root->children[i] = sub_cubes[i];
-		}
+		octree_world_root->children = load_octree_children(ivec(0, 0, 0), map_header.worldsize >> 1, loading_octree_failed);
 
 		cout << "Loading octree finished." << endl;
 

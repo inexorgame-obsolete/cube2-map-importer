@@ -319,17 +319,31 @@ namespace cube2_map_importer {
 
 	struct cube
 	{
-		// points to 8 cube structures which are its children, or NULL. -Z first, then -Y, -X
+		// Points to 8 children cubes, or NULL. -Z first, then -Y, -X
 		// We use std::array to enable multiple (8) return values for functions.
 		std::array<std::shared_ptr<cube>, 8> children;
 
 		// IMPORTANT NOTE: We can't initialise 'children' in the constructor
 		// since this will cause a recursion and a stack overflow!
 
+		cube()
+		{
+			for(std::size_t i=0; i<8; i++)
+			{
+				children[i] = NULL;
+			}
+
+			ext = NULL;
+
+			// TODO: Set member memory to zero?
+		}
+
 		// TODO: std::shared_ptr<cubeext> extended_cube_info;
 		
 		// extended info for the cube
 		cubeext* ext;
+
+		// TODO: Remove union?
 
 		union
 		{
@@ -350,6 +364,8 @@ namespace cube2_map_importer {
 		// merged faces of the cube.
 		uchar merged;
 		
+		// TODO: Remove union?
+
 		union
 		{
 			// mask of which children have escaped merges.
