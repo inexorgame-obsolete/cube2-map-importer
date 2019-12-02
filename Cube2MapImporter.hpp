@@ -134,6 +134,9 @@ namespace cube2_map_importer {
 
 			// 
 			std::array<std::shared_ptr<cube>, 8> load_octree_children(const ivec &co, int size, bool &failed);
+
+			// 
+			void dump_decompressed_data_to_file(const std::string& file_name);
 			
 
 		protected:

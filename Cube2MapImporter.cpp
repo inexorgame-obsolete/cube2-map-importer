@@ -2085,8 +2085,22 @@ namespace cube2_map_importer {
 	}
 
 
+	void Cube2MapImporter::dump_decompressed_data_to_file(const std::string& file_name)
+	{
+		ofstream outfile(file_name.c_str(), ios::out|ios::binary);
+		outfile.write((char*)&decompressed_data_buffer[0], decompressed_data_buffer.size());
+		outfile.close();
+	}
+
+
 	bool Cube2MapImporter::parse_decompressed_data()
 	{
+		#define INEXOR_CUBE2_MAP_IMPORTER_DECOMPRESSED_DATA_MEMORY_DUMP
+
+		#ifdef INEXOR_CUBE2_MAP_IMPORTER_DECOMPRESSED_DATA_MEMORY_DUMP
+			dump_decompressed_data_to_file("decompressed_data.bin");
+		#endif
+
 		if(!parse_map_header())
 		{
 			return false;
