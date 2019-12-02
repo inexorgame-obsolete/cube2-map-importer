@@ -417,9 +417,9 @@ namespace cube2_map_importer {
 		{
 			return false;
 		}
-
-		// 
-		approximate_decompressed_size = decompression_stream.total_out;
+		
+		// Make the decompressed data buffer smaller to free the unused memory.
+		decompressed_data_buffer.resize(decompression_stream.total_out);
 
 		cout << "Finished decompressing." << endl;
 
