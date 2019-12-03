@@ -268,6 +268,11 @@ namespace cube2_map_importer {
 			// 
 			void setcubeext(cube &c, cubeext *ext);
 			
+			void setsurfaces(cube &c, const surfaceinfo *surfs, const vertinfo *verts, int numverts);
+
+			// 
+			void convertoldsurfaces(cube &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges);
+
 			// 
 			cubeext *growcubeext(cubeext *old, int maxverts);
 

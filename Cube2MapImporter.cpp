@@ -1483,54 +1483,7 @@ namespace cube2_map_importer {
 	}
 
 
-	cubeext *growcubeext(cubeext *old, int maxverts)
-	{
-		cubeext *ext = (cubeext *)new uchar[sizeof(cubeext) + maxverts*sizeof(vertinfo)];
-		if(old)
-		{
-			ext->va = old->va;
-			ext->ents = old->ents;
-			ext->tjoints = old->tjoints;
-		}
-		else
-		{
-			ext->va = NULL;
-			ext->ents = NULL;
-			ext->tjoints = -1;
-		}
-		ext->maxverts = maxverts;
-		return ext;
-	}
-
-
-	void setcubeext(cube &c, cubeext *ext)
-	{
-		cubeext *old = c.ext;
-		if(old == ext) return;
-		c.ext = ext;
-		if(old) delete[] (uchar *)old;
-	}
-
-
-	cubeext *newcubeext(cube &c, int maxverts, bool init)
-	{
-		if(c.ext && c.ext->maxverts >= maxverts) return c.ext;
-		cubeext *ext = growcubeext(c.ext, maxverts);
-		if(init)
-		{
-			if(c.ext)
-			{
-				memcpy(ext->surfaces, c.ext->surfaces, sizeof(ext->surfaces));
-				memcpy(ext->verts(), c.ext->verts(), c.ext->maxverts*sizeof(vertinfo));
-			}
-			else memset(ext->surfaces, 0, sizeof(ext->surfaces)); 
-		}
-		setcubeext(c, ext);
-		return ext;
-	}
-
-
-	void setsurfaces(cube &c, const surfaceinfo *surfs, const vertinfo *verts, int numverts)
+	void Cube2MapImporter::setsurfaces(cube &c, const surfaceinfo *surfs, const vertinfo *verts, int numverts)
 	{
 		if(!c.ext || c.ext->maxverts < numverts) newcubeext(c, numverts, false);
 		memcpy(c.ext->surfaces, surfs, sizeof(c.ext->surfaces));
@@ -1538,7 +1491,7 @@ namespace cube2_map_importer {
 	}
 
 
-	void convertoldsurfaces(cube &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges)
+	void Cube2MapImporter::convertoldsurfaces(cube &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges)
 	{
 		surfaceinfo dstsurfs[6];
 		vertinfo verts[6*2*MAXFACEVERTS];
