@@ -1349,19 +1349,19 @@ namespace cube2_map_importer {
 	}
 
 
-	void Cube2MapImporter::edgespan2vectorcube(cube &c)
+	void Cube2MapImporter::edgespan2vectorcube(shared_ptr<cube> &c)
 	{
-		if(isentirelysolid(c) || isempty(c)) return;
-		cube o = c;
+		if(isentirelysolid(*c) || isempty(*c)) return;
+		cube o = *c;
 		loop(x, 2) loop(y, 2) loop(z, 2)
 		{
 			ivec p(8*x, 8*y, 8*z);
 			vec v;
 			genedgespanvert(p, o, v);
 
-			edgeset(cubeedge(c, 0, y, z), x, int(v.x+0.49f));
-			edgeset(cubeedge(c, 1, z, x), y, int(v.y+0.49f));
-			edgeset(cubeedge(c, 2, x, y), z, int(v.z+0.49f));
+			edgeset(cubeedge(*c, 0, y, z), x, int(v.x+0.49f));
+			edgeset(cubeedge(*c, 1, z, x), y, int(v.y+0.49f));
+			edgeset(cubeedge(*c, 2, x, y), z, int(v.z+0.49f));
 		}
 	}
 
@@ -1423,6 +1423,19 @@ namespace cube2_map_importer {
 
 		return new_extension;
 	}
+
+
+	void Cube2MapImporter::set_surfaces(cube &c, const surfaceinfo *surfs, const VertexInfo *verts, int numverts)
+	{
+		if(!c.extension || c.extension->maxverts < numverts)
+		{
+			new_cube_extension(c, numverts, false);
+		}
+
+		memcpy(c.extension->surfaces, surfs, sizeof(c.extension->surfaces));
+		memcpy(c.extension->verts(), verts, numverts*sizeof(VertexInfo));
+	}
+
 
 	void Cube2MapImporter::convert_old_surfaces(std::shared_ptr<cube> &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges)
 	{
@@ -1494,7 +1507,9 @@ namespace cube2_map_importer {
 				{
 					ivec v[4], pos[4], e1, e2, e3, n, vo = ivec(co).mask(0xFFF).shl(3);
 					
-					genfaceverts(c, i, v); 
+					cube test = *c;
+
+					genfaceverts(test, i, v); 
 
 					n.cross((e1 = v[1]).sub(v[0]), (e2 = v[2]).sub(v[0]));
 					
@@ -1610,7 +1625,7 @@ namespace cube2_map_importer {
 			}
 		}
 
-		set_surfaces(c, dstsurfs, verts, totalverts);
+		set_surfaces(*c, dstsurfs, verts, totalverts);
 	}
 	
 
@@ -1928,7 +1943,9 @@ namespace cube2_map_importer {
 				// TODO: Fix!
 				//new_cube_extension(c, totalverts, false);
 				
-				new_cube_extension(c, totalverts, false);
+				cube test = *c;
+
+				new_cube_extension(test, totalverts, false);
 
 				//memset(c->extensions->surfaces, 0, sizeof(c.ext->surfaces));
 				//memset(c->extensions->verts(), 0, totalverts*sizeof(vertinfo));
@@ -1975,8 +1992,11 @@ namespace cube2_map_importer {
 						int vr = R[dim];
 						int bias = 0;
 						
+						// TODO: Does this work?
+						cube test = *c;
+
 						// ok 
-						genfaceverts(c, i, v);
+						genfaceverts(test, i, v);
 
 						// ok 
 						bool hasxyz = (vertmask&0x04)!=0;

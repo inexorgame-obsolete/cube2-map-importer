@@ -310,7 +310,7 @@ namespace cube2_map_importer {
 	struct CubeExtension
 	{
 		// Copy constructor.
-		CubeExtension(std::shared_ptr<CubeExtension>& old_cube_extension)
+		CubeExtension(std::shared_ptr<CubeExtension>& old_cube_extension, int max_vertices)
 		{
 			if(old_cube_extension)
 			{
@@ -325,9 +325,10 @@ namespace cube2_map_importer {
 				tjoints = -1;
 			}
 
-			maxverts = old_cube_extension->maxverts;
+			maxverts = max_vertices;
 		}
 
+		// 
 		VertexInfo *verts()
 		{
 			return (VertexInfo *)(this+1);

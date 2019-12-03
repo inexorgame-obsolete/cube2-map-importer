@@ -138,6 +138,8 @@ namespace cube2_map_importer {
 			// 
 			void dump_decompressed_data_to_file(const std::string& file_name);
 			
+			// 
+			void set_surfaces(cube &c, const surfaceinfo *surfs, const VertexInfo *verts, int numverts);
 
 		protected:
 
@@ -266,16 +268,13 @@ namespace cube2_map_importer {
 			bool loading_octree_failed;
 			
 			// 
-			void set_surfaces(std::shared_ptr<cube> &c, const surfaceinfo *surfs, const VertexInfo *verts, int numverts);
-
-			// 
 			void convert_old_surfaces(std::shared_ptr<cube> &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges);
 
 			// 
 			void fill_octree_node_with_data(std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed);
 			
 			// 
-			void edgespan2vectorcube(cube &c);
+			void edgespan2vectorcube(std::shared_ptr<cube> &c);
 
 
 		public:
