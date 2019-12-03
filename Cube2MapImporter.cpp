@@ -1940,15 +1940,12 @@ namespace cube2_map_importer {
 				int totalverts = read_one_byte_from_buffer();
 				int offset = 0;
 				
-				// TODO: Fix!
-				//new_cube_extension(c, totalverts, false);
-				
+				// TODO: Fix this!				
 				cube test = *c;
-
 				new_cube_extension(test, totalverts, false);
 
-				//memset(c->extensions->surfaces, 0, sizeof(c.ext->surfaces));
-				//memset(c->extensions->verts(), 0, totalverts*sizeof(vertinfo));
+				memset(c->extension->surfaces, 0, sizeof(c->extension->surfaces));
+				memset(c->extension->verts(), 0, totalverts*sizeof(VertexInfo));
 
 				// ok 
 				for(std::size_t i=0; i<6; i++)
