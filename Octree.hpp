@@ -309,6 +309,30 @@ namespace cube2_map_importer {
 	// 
 	struct CubeExtension
 	{
+		// Copy constructor.
+		CubeExtension(std::shared_ptr<CubeExtension>& old_cube_extension)
+		{
+			if(old_cube_extension)
+			{
+				vertex_array = old_cube_extension->vertex_array;
+				entities = old_cube_extension->entities;
+				tjoints = old_cube_extension->tjoints;
+			}
+			else
+			{
+				vertex_array.clear();
+				entities.clear();
+				tjoints = -1;
+			}
+
+			maxverts = old_cube_extension->maxverts;
+		}
+
+		VertexInfo *verts()
+		{
+			return (VertexInfo *)(this+1);
+		}
+
 		// vertex array for children, or NULL.
 		std::vector<vtxarray> vertex_array;
 		

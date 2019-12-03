@@ -1392,47 +1392,66 @@ namespace cube2_map_importer {
 	}
 
 
-	cubeext *newcubeext(cube &c, int maxverts, bool init)
+	std::shared_ptr<CubeExtension> Cube2MapImporter::new_cube_extension(cube &c, int maxverts, bool init)
 	{
-		if(c.ext && c.ext->maxverts >= maxverts) return c.ext;
-		cubeext *ext = growcubeext(c.ext, maxverts);
+		if(c.extension && c.extension->maxverts >= maxverts)
+		{
+			return c.extension;
+		}
+
+		// Use copy constructor to create a new instance.
+		std::shared_ptr<CubeExtension> new_extension = std::make_shared<CubeExtension>(c.extension, maxverts);
+		
 		if(init)
 		{
-			if(c.ext)
+			if(c.extension)
 			{
-				memcpy(ext->surfaces, c.ext->surfaces, sizeof(ext->surfaces));
-				memcpy(ext->verts(), c.ext->verts(), c.ext->maxverts*sizeof(vertinfo));
+				memcpy(new_extension->surfaces, c.extension->surfaces, sizeof(c.extension->surfaces));
+
+				// TODO: Refactor and remove this!
+				memcpy(new_extension->verts(), c.extension->verts(), c.extension->maxverts*sizeof(VertexInfo));
 			}
-			else memset(ext->surfaces, 0, sizeof(ext->surfaces)); 
+			else
+			{
+				// Reset surface memory.
+				memset(new_extension->surfaces, 0, sizeof(new_extension->surfaces));
+			}
 		}
-		setcubeext(c, ext);
-		return ext;
+		
+		// Copy cube extension.
+		c.extension = new_extension;
+
+		return new_extension;
 	}
 
-
-
-	void Cube2MapImporter::convert_old_surfaces(cube &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges)
+	void Cube2MapImporter::convert_old_surfaces(std::shared_ptr<cube> &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges)
 	{
+		// ok 
 		surfaceinfo dstsurfs[6];
 		
+		// ok 
 		VertexInfo verts[6*2*MAXFACEVERTS];
 		
+		// ok 
 		int totalverts = 0;
 		int numsurfs = 6;
 		
 		// TODO: Let the constructor do this!
 		memset(dstsurfs, 0, sizeof(dstsurfs));
 		
+		// ok 
 		for(std::size_t i=0; i<6; i++)
 		{
 			if((hassurfs|hasnorms|hasmerges)&(1<<i))
 			{
+				// ok 
 				surfaceinfo &dst = dstsurfs[i];
-			
-				std::shared_ptr<VertexInfo> current_vertices = NULL;
-				std::shared_ptr<surfacecompat> src = NULL;
-				std::shared_ptr<surfacecompat> blend = NULL;
 				
+				// ok 
+				VertexInfo *curverts = NULL;
+				surfacecompat *src = NULL, *blend = NULL;
+				
+				// ok 
 				int numverts = 0;
 
 				if(hassurfs&(1<<i))
@@ -1441,29 +1460,44 @@ namespace cube2_map_importer {
 					if(src->layer&2) 
 					{ 
 						blend = &srcsurfs[numsurfs++];
+
 						dst.lmid[0] = src->lmid;
 						dst.lmid[1] = blend->lmid;
 						dst.numverts |= LAYER_BLEND;
+						
 						if(blend->lmid >= LMID_RESERVED && (src->x != blend->x || src->y != blend->y || src->w != blend->w || src->h != blend->h || memcmp(src->texcoords, blend->texcoords, sizeof(src->texcoords))))
+						{
 							dst.numverts |= LAYER_DUP;
+						}
 					}
-					else if(src->layer == 1) { dst.lmid[1] = src->lmid; dst.numverts |= LAYER_BOTTOM; }
-					else { dst.lmid[0] = src->lmid; dst.numverts |= LAYER_TOP; } 
+					else if(src->layer == 1)
+					{
+						dst.lmid[1] = src->lmid;
+						dst.numverts |= LAYER_BOTTOM;
+					}
+					else
+					{
+						dst.lmid[0] = src->lmid;
+						dst.numverts |= LAYER_TOP;
+					}
 				}
 				else
 				{
 					dst.numverts |= LAYER_TOP;
 				}
 
-				bool uselms = hassurfs&(1<<i) && (dst.lmid[0] >= LMID_RESERVED || dst.lmid[1] >= LMID_RESERVED || dst.numverts&~LAYER_TOP),
-					 usemerges = hasmerges&(1<<i) && merges[i].u1 < merges[i].u2 && merges[i].v1 < merges[i].v2,
-					 usenorms = hasnorms&(1<<i) && normals[i].normals[0] != bvec(128, 128, 128);
+				bool uselms = hassurfs&(1<<i) && (dst.lmid[0] >= LMID_RESERVED || dst.lmid[1] >= LMID_RESERVED || dst.numverts&~LAYER_TOP);
+				bool usemerges = hasmerges&(1<<i) && merges[i].u1 < merges[i].u2 && merges[i].v1 < merges[i].v2;
+				bool usenorms = hasnorms&(1<<i) && normals[i].normals[0] != bvec(128, 128, 128);
 
 				if(uselms || usemerges || usenorms)
 				{
 					ivec v[4], pos[4], e1, e2, e3, n, vo = ivec(co).mask(0xFFF).shl(3);
+					
 					genfaceverts(c, i, v); 
+
 					n.cross((e1 = v[1]).sub(v[0]), (e2 = v[2]).sub(v[0]));
+					
 					if(usemerges)
 					{
 						const mergecompat &m = merges[i];
@@ -1473,13 +1507,16 @@ namespace cube2_map_importer {
 						int vc = C[dim];
 						int vr = R[dim];
 					
-						loopk(4)
+						for(std::size_t k=0; k<4; k++)
 						{
 							const ivec &coords = facecoords[i][k];
+
 							int cc = coords[vc] ? m.u2 : m.u1,
 								rc = coords[vr] ? m.v2 : m.v1,
 								dc = -(offset + n[vc]*cc + n[vr]*rc)/n[dim];
+
 							ivec &mv = pos[k];
+
 							mv[vc] = cc;
 							mv[vr] = rc;
 							mv[dim] = dc;
@@ -1487,7 +1524,9 @@ namespace cube2_map_importer {
 					}
 					else
 					{
-						int convex = (e3 = v[0]).sub(v[3]).dot(n), vis = 3;
+						int convex = (e3 = v[0]).sub(v[3]).dot(n);
+						int vis = 3;
+
 						if(!convex)
 						{
 							if(ivec().cross(e3, e2).iszero())
@@ -1506,6 +1545,7 @@ namespace cube2_map_importer {
 							}
 						}
 						int order = convex < 0 ? 1 : 0;
+
 						pos[0] = v[order].mul(size).add(vo);
 						pos[1] = vis&1 ? v[order+1].mul(size).add(vo) : pos[0];
 						pos[2] = v[order+2].mul(size).add(vo);
@@ -1516,8 +1556,11 @@ namespace cube2_map_importer {
 
 					for(std::size_t k=0; k<4; k++)
 					{
-						if(k > 0 && (pos[k] == pos[0] || pos[k] == pos[k-1])) continue;
-						
+						if(k > 0 && (pos[k] == pos[0] || pos[k] == pos[k-1]))
+						{
+							continue;
+						}
+
 						VertexInfo &dv = curverts[numverts++];
 
 						dv.setxyz(pos[k]);
@@ -1530,27 +1573,38 @@ namespace cube2_map_importer {
 							dv.u = ushort(floor(clamp((u) * float(USHRT_MAX+1)/LM_PACKW + 0.5f, 0.0f, float(USHRT_MAX))));
 							dv.v = ushort(floor(clamp((v) * float(USHRT_MAX+1)/LM_PACKH + 0.5f, 0.0f, float(USHRT_MAX))));
 						}
-						else dv.u = dv.v = 0;
+						else
+						{
+							dv.u = dv.v = 0;
+						}
+
+						// TODO: Resolve this!
 						dv.norm = usenorms && normals[i].normals[k] != bvec(128, 128, 128) ? encodenormal(normals[i].normals[k].tovec().normalize()) : 0;
 					}
+					
 					dst.verts = totalverts;
 					dst.numverts |= numverts;
 					totalverts += numverts;
-					if(dst.numverts&LAYER_DUP) loopk(4)
+
+					if(dst.numverts&LAYER_DUP)
 					{
-						if(k > 0 && (pos[k] == pos[0] || pos[k] == pos[k-1]))
+						for(std::size_t k=0; k<4; k++)
 						{
-							continue;
-						}
+							if(k > 0 && (pos[k] == pos[0] || pos[k] == pos[k-1]))
+							{
+								continue;
+							}
 						
-						VertexInfo &bv = verts[totalverts++];
-						bv.setxyz(pos[k]);
+							VertexInfo &bv = verts[totalverts++];
 
-						bv.u = ushort(floor(clamp((blend->x + (blend->texcoords[k*2] / 255.0f) * (blend->w - 1)) * float(USHRT_MAX+1)/LM_PACKW, 0.0f, float(USHRT_MAX))));
-						bv.v = ushort(floor(clamp((blend->y + (blend->texcoords[k*2+1] / 255.0f) * (blend->h - 1)) * float(USHRT_MAX+1)/LM_PACKH, 0.0f, float(USHRT_MAX))));
+							bv.setxyz(pos[k]);
 
-						// TODO: Resolve!
-						bv.norm = usenorms && normals[i].normals[k] != bvec(128, 128, 128) ? encodenormal(normals[i].normals[k].tovec().normalize()) : 0;
+							bv.u = ushort(floor(clamp((blend->x + (blend->texcoords[k*2] / 255.0f) * (blend->w - 1)) * float(USHRT_MAX+1)/LM_PACKW, 0.0f, float(USHRT_MAX))));
+							bv.v = ushort(floor(clamp((blend->y + (blend->texcoords[k*2+1] / 255.0f) * (blend->h - 1)) * float(USHRT_MAX+1)/LM_PACKH, 0.0f, float(USHRT_MAX))));
+
+							// TODO: Resolve!
+							bv.norm = usenorms && normals[i].normals[k] != bvec(128, 128, 128) ? encodenormal(normals[i].normals[k].tovec().normalize()) : 0;
+						}
 					}
 				}    
 			}
@@ -1558,9 +1612,9 @@ namespace cube2_map_importer {
 
 		set_surfaces(c, dstsurfs, verts, totalverts);
 	}
+	
 
-
-	void Cube2MapImporter::fill_octree_node_with_data(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed)
+	void Cube2MapImporter::fill_octree_node_with_data(std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed)
 	{
 		// ok
 		bool haschildren = false;
@@ -1756,7 +1810,7 @@ namespace cube2_map_importer {
 			if(map_header.version <= 8)
 			{
 				// ok 
-				edgespan2vectorcube(*c);
+				edgespan2vectorcube(c);
 			}
 
 			// ok 
@@ -1833,8 +1887,9 @@ namespace cube2_map_importer {
 			if(hassurfs || hasnorms || hasmerges)
 			{
 				// ok 
-				convert_old_surfaces(*c, co, size, surfaces, hassurfs, normals, hasnorms, merges, hasmerges);
+				convert_old_surfaces(c, co, size, surfaces, hassurfs, normals, hasnorms, merges, hasmerges);
 			}
+			
 		}
 		else
 		{
@@ -1871,11 +1926,13 @@ namespace cube2_map_importer {
 				int offset = 0;
 				
 				// TODO: Fix!
-				newcubeext(c, totalverts, false);
-
-				memset(c.ext->surfaces, 0, sizeof(c.ext->surfaces));
-				memset(c.ext->verts(), 0, totalverts*sizeof(vertinfo));
+				//new_cube_extension(c, totalverts, false);
 				
+				new_cube_extension(c, totalverts, false);
+
+				//memset(c->extensions->surfaces, 0, sizeof(c.ext->surfaces));
+				//memset(c->extensions->verts(), 0, totalverts*sizeof(vertinfo));
+
 				// ok 
 				for(std::size_t i=0; i<6; i++)
 				{
@@ -1903,7 +1960,7 @@ namespace cube2_map_importer {
 						surf.verts = offset;
 						
 						// ok 
-						vertinfo *verts = c.ext->verts() + offset;
+						VertexInfo *verts = c->extension->verts() + offset;
 
 						// ok 
 						offset += numverts;
@@ -1919,7 +1976,7 @@ namespace cube2_map_importer {
 						int bias = 0;
 						
 						// ok 
-						genfaceverts(*c, i, v);
+						genfaceverts(c, i, v);
 
 						// ok 
 						bool hasxyz = (vertmask&0x04)!=0;
@@ -2144,7 +2201,6 @@ namespace cube2_map_importer {
 			}
 		}
 	}
-
 
 
 	std::array<std::shared_ptr<cube>, 8> Cube2MapImporter::load_octree_node(const ivec &co, int size, bool &failed)
