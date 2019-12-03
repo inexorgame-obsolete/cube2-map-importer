@@ -270,7 +270,7 @@ namespace cube2_map_importer {
 			new_sub_cubes[i] = std::make_shared<cube>();
 
 			// TODO: Move this to cube::cube() ?
-			new_sub_cubes[i]->ext = NULL;
+			new_sub_cubes[i]->extension = NULL;
 			new_sub_cubes[i]->visible = NULL;
 			new_sub_cubes[i]->merged = NULL;
 
@@ -1424,54 +1424,59 @@ namespace cube2_map_importer {
 	}
 
 
-	cubeext *Cube2MapImporter::growcubeext(cubeext *old, int maxverts)
+	std::shared_ptr<cubeext> Cube2MapImporter::grow_cube_extension(std::shared_ptr<cubeext> old, int maxverts)
 	{
 		// TODO: Refactor!
-		cubeext *ext = (cubeext *)new uchar[sizeof(cubeext) + maxverts*sizeof(vertinfo)];
+		//cubeext *ext = (cubeext *)new uchar[sizeof(cubeext) + maxverts*sizeof(vertinfo)];
 
+		// 
+		std::size_t memory_size = sizeof(cubeext) + maxverts * sizeof(vertinfo);
+		
+		// 
+		std::shared_ptr<cubeext> extension = std::make_shared<cubeext>();
+		
 		if(old)
 		{
-			ext->va = old->va;
-			ext->ents = old->ents;
-			ext->tjoints = old->tjoints;
+			extension->va = old->va;
+			extension->ents = old->ents;
+			extension->tjoints = old->tjoints;
 		}
 		else
 		{
-			ext->va = NULL;
-			ext->ents = NULL;
-			ext->tjoints = -1;
+			extension->va = NULL;
+			extension->ents = NULL;
+			extension->tjoints = -1;
 		}
 
-		ext->maxverts = maxverts;
+		extension->maxverts = maxverts;
 		
-		return ext;
+		return extension;
 	}
 
 
-	void Cube2MapImporter::setcubeext(cube &c, cubeext *ext)
+	std::shared_ptr<cubeext> Cube2MapImporter::newcubeext(cube &c, int maxverts, bool init)
 	{
-		cubeext *old = c.ext;
-		if(old == ext) return;
-		c.ext = ext;
-		if(old) delete[] (uchar *)old;
-	}
+		if(c.extension && c.extension->maxverts >= maxverts)
+		{
+			return c.extension;
+		}
+		
+		// Allocate more memory.
+		std::shared_ptr<cubeext> new_extension = grow_cube_extension(c.extension, maxverts);
 
-
-	cubeext * Cube2MapImporter::newcubeext(cube &c, int maxverts, bool init)
-	{
-		if(c.ext && c.ext->maxverts >= maxverts) return c.ext;
-		cubeext *ext = growcubeext(c.ext, maxverts);
 		if(init)
 		{
-			if(c.ext)
+			if(c.extension)
 			{
-				memcpy(ext->surfaces, c.ext->surfaces, sizeof(ext->surfaces));
-				memcpy(ext->verts(), c.ext->verts(), c.ext->maxverts*sizeof(vertinfo));
+				memcpy(new_extension->surfaces, c.extension->surfaces, sizeof(new_extension->surfaces));
+				memcpy(new_extension->verts(), c.extension->verts(), c.extension->maxverts*sizeof(vertinfo));
 			}
-			else memset(ext->surfaces, 0, sizeof(ext->surfaces)); 
+			else memset(new_extension->surfaces, 0, sizeof(new_extension->surfaces)); 
 		}
-		setcubeext(c, ext);
-		return ext;
+
+		c.extension = new_extension;
+
+		return new_extension;
 	}
 
 
@@ -1483,15 +1488,15 @@ namespace cube2_map_importer {
 	}
 
 
-	void Cube2MapImporter::setsurfaces(cube &c, const surfaceinfo *surfs, const vertinfo *verts, int numverts)
+	void Cube2MapImporter::set_surfaces(cube &c, const surfaceinfo *surfs, const vertinfo *verts, int numverts)
 	{
-		if(!c.ext || c.ext->maxverts < numverts) newcubeext(c, numverts, false);
-		memcpy(c.ext->surfaces, surfs, sizeof(c.ext->surfaces));
-		memcpy(c.ext->verts(), verts, numverts*sizeof(vertinfo));
+		if(!c.extension || c.extension->maxverts < numverts) newcubeext(c, numverts, false);
+		memcpy(c.extension->surfaces, surfs, sizeof(c.extension->surfaces));
+		memcpy(c.extension->verts(), verts, numverts*sizeof(vertinfo));
 	}
 
 
-	void Cube2MapImporter::convertoldsurfaces(cube &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges)
+	void Cube2MapImporter::convert_old_surfaces(cube &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges)
 	{
 		surfaceinfo dstsurfs[6];
 		vertinfo verts[6*2*MAXFACEVERTS];
@@ -1500,9 +1505,14 @@ namespace cube2_map_importer {
 		loopi(6) if((hassurfs|hasnorms|hasmerges)&(1<<i))
 		{
 			surfaceinfo &dst = dstsurfs[i];
+			
 			vertinfo *curverts = NULL;
+			
 			int numverts = 0;
-			surfacecompat *src = NULL, *blend = NULL;
+			
+			surfacecompat *src = NULL;
+			surfacecompat *blend = NULL;
+
 			if(hassurfs&(1<<i))
 			{
 				src = &srcsurfs[i];
@@ -1518,10 +1528,15 @@ namespace cube2_map_importer {
 				else if(src->layer == 1) { dst.lmid[1] = src->lmid; dst.numverts |= LAYER_BOTTOM; }
 				else { dst.lmid[0] = src->lmid; dst.numverts |= LAYER_TOP; } 
 			}
-			else dst.numverts |= LAYER_TOP;
+			else
+			{
+				dst.numverts |= LAYER_TOP;
+			}
+
 			bool uselms = hassurfs&(1<<i) && (dst.lmid[0] >= LMID_RESERVED || dst.lmid[1] >= LMID_RESERVED || dst.numverts&~LAYER_TOP),
 				 usemerges = hasmerges&(1<<i) && merges[i].u1 < merges[i].u2 && merges[i].v1 < merges[i].v2,
 				 usenorms = hasnorms&(1<<i) && normals[i].normals[0] != bvec(128, 128, 128);
+
 			if(uselms || usemerges || usenorms)
 			{
 				ivec v[4], pos[4], e1, e2, e3, n, vo = ivec(co).mask(0xFFF).shl(3);
@@ -1593,25 +1608,13 @@ namespace cube2_map_importer {
 				}
 			}    
 		}
-		setsurfaces(c, dstsurfs, verts, totalverts);
+
+		set_surfaces(c, dstsurfs, verts, totalverts);
 	}
 
 
-	int counter = 0;
-
 	void Cube2MapImporter::fill_cubes_with_data(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed)
 	{
-		counter++;
-
-		cout << counter << endl;
-
-		if(193==counter)
-		{
-			cout << " oh oh " << endl;
-		}
-
-		cout << "Cube2MapImporter::fill_cubes_with_data(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed)" << endl;
-		
 		bool haschildren = false;
     
 		int octsav = read_one_byte_from_buffer();
@@ -1687,9 +1690,13 @@ namespace cube2_map_importer {
 						MAT_GAMECLIP, MAT_DEATH
 					};
 
+					// TODO: Resolve!
 					c->material = size_t(mat) < sizeof(matconv)/sizeof(matconv[0]) ? matconv[mat] : MAT_AIR;
 				}
-				else c->material = convertoldmaterial(mat);
+				else
+				{
+					c->material = convertoldmaterial(mat);
+				}
 			}
 			
 			surfacecompat surfaces[12];
@@ -1798,7 +1805,7 @@ namespace cube2_map_importer {
 
 			if(hassurfs || hasnorms || hasmerges)
 			{
-				convertoldsurfaces(*c, co, size, surfaces, hassurfs, normals, hasnorms, merges, hasmerges);
+				convert_old_surfaces(*c, co, size, surfaces, hassurfs, normals, hasnorms, merges, hasmerges);
 			}
 		}
 		else
@@ -1822,25 +1829,31 @@ namespace cube2_map_importer {
 			{
 				int surfmask = read_one_byte_from_buffer();
 				int totalverts = read_one_byte_from_buffer();
+				int offset = 0;
 				
 				newcubeext(*c, totalverts, false);
 
-				memset(c->ext->surfaces, 0, sizeof(c->ext->surfaces));
-				memset(c->ext->verts(), 0, totalverts*sizeof(vertinfo));
-				int offset = 0;
-
+				memset(c->extension->surfaces, 0, sizeof(c->extension->surfaces));
+				memset(c->extension->verts(), 0, totalverts*sizeof(vertinfo));
+				
 				for(std::size_t i=0; i<6; i++)
 				{
 					if(surfmask&(1<<i)) 
 					{
-						surfaceinfo &surf = c->ext->surfaces[i];
+						surfaceinfo &surf = c->extension->surfaces[i];
 						
 						read_memory_into_structure(&surf, sizeof(surfacecompat), sizeof(surfacecompat));
 
 						int vertmask = surf.verts, numverts = surf.totalverts();
-						if(!numverts) { surf.verts = 0; continue; }
+						
+						if(!numverts)
+						{
+							surf.verts = 0;
+							continue;
+						}
+						
 						surf.verts = offset;
-						vertinfo *verts = c->ext->verts() + offset;
+						vertinfo *verts = c->extension->verts() + offset;
 						offset += numverts;
 						ivec v[4], n;
 						
@@ -1866,7 +1879,9 @@ namespace cube2_map_importer {
 						}
 						else
 						{
+							// TODO: Resolve!
 							int vis = layerverts < 4 ? (vertmask&0x02 ? 2 : 1) : 3, order = vertmask&0x01 ? 1 : 0, k = 0;
+
 							ivec vo = ivec(co).mask(0xFFF).shl(3);
 
 							verts[k++].setxyz(v[order].mul(size).add(vo));

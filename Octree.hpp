@@ -333,18 +333,16 @@ namespace cube2_map_importer {
 				children[i] = NULL;
 			}
 
-			ext = NULL;
+			extension = NULL;
 
 			// TODO: Set member memory to zero?
 		}
 
-		// TODO: std::shared_ptr<cubeext> extended_cube_info;
-		
-		// extended info for the cube
-		cubeext* ext;
+		// extended info of the cube.
+		std::shared_ptr<cubeext> extension;
 
-		// TODO: Remove union?
 
+		// TODO: Remove unions?
 		union
 		{
 			// edges of the cube, each uchar is 2 4bit values denoting the range.

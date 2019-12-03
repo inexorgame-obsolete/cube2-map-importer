@@ -264,23 +264,21 @@ namespace cube2_map_importer {
 
 			// 
 			bool loading_octree_failed;
-
-			// 
-			void setcubeext(cube &c, cubeext *ext);
 			
-			void setsurfaces(cube &c, const surfaceinfo *surfs, const vertinfo *verts, int numverts);
+			// 
+			void set_surfaces(cube &c, const surfaceinfo *surfs, const vertinfo *verts, int numverts);
 
 			// 
-			void convertoldsurfaces(cube &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges);
+			void convert_old_surfaces(cube &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges);
 
 			// 
-			cubeext *growcubeext(cubeext *old, int maxverts);
+			std::shared_ptr<cubeext> grow_cube_extension(std::shared_ptr<cubeext> old, int maxverts);
 
 			// 
 			void fill_cubes_with_data(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed);
 			
 			// 
-			cubeext *newcubeext(cube &c, int maxverts, bool init);
+			std::shared_ptr<cubeext> newcubeext(cube &c, int maxverts, bool init);
 
 			// 
 			void edgespan2vectorcube(cube &c);
