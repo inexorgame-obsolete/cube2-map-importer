@@ -173,6 +173,7 @@ namespace cube2_map_importer {
 	};
 
 
+	// ok
 	struct surfacecompat
 	{
 		uchar texcoords[8];
@@ -182,11 +183,13 @@ namespace cube2_map_importer {
 	};
 	
 	
+	// ok 
 	struct normalscompat
 	{
 		bvec normals[4];
 	};
 
+	// ok 
 	struct mergecompat
 	{
 		ushort u1, u2, v1, v2;
@@ -290,7 +293,8 @@ namespace cube2_map_importer {
 	};
 
 
-	struct vertinfo
+	// 
+	struct VertexInfo
 	{
 		ushort x, y, z, u, v, norm;
 
@@ -302,31 +306,35 @@ namespace cube2_map_importer {
 	};
 
 
-	struct cubeext
+	// 
+	struct CubeExtension
 	{
-		vtxarray *va;            // vertex array for children, or NULL
-		octaentities *ents;      // map entities inside cube
-		surfaceinfo surfaces[6]; // render info for each surface
-		int tjoints;             // linked list of t-joints
-		uchar maxverts;          // allocated space for verts
+		// vertex array for children, or NULL.
+		std::vector<vtxarray> vertex_array;
+		
+		// map entities inside cube.
+		std::vector<octaentities> entities;
 
-		vertinfo *verts()
-		{
-			return (vertinfo *)(this+1);
-		}
+		// render info for each surface.
+		surfaceinfo surfaces[6];
+		
+		// linked list of t-joints.
+		int tjoints;
+		
+		// allocated space for verts.
+		uchar maxverts;
 	}; 
 
 
+	// 
 	struct cube
 	{
 		// Points to 8 children cubes, or NULL. -Z first, then -Y, -X
 		// We use std::array to enable multiple (8) return values for functions.
 		std::array<std::shared_ptr<cube>, 8> children;
 
-		// IMPORTANT NOTE: We can't initialise 'children' in the constructor
-		// since this will cause a recursion and a stack overflow!
-
-		cube()
+		// TODO: Debug!
+		cube(uint face = F_EMPTY, int mat = MAT_AIR)
 		{
 			for(std::size_t i=0; i<8; i++)
 			{
@@ -334,12 +342,25 @@ namespace cube2_map_importer {
 			}
 
 			extension = NULL;
+			visible = NULL;
+			merged = NULL;
+		
+			for(std::size_t k=0; k<3; k++)
+			{
+				faces[k] = face;
+			}
 
-			// TODO: Set member memory to zero?
+			for(std::size_t l=0; l<6; l++)
+			{
+				texture[l] = DEFAULT_GEOM;
+			}
+
+			material = material;
 		}
 
+
 		// extended info of the cube.
-		std::shared_ptr<cubeext> extension;
+		std::shared_ptr<CubeExtension> extension;
 
 
 		// TODO: Remove unions?
@@ -362,8 +383,7 @@ namespace cube2_map_importer {
 		// merged faces of the cube.
 		uchar merged;
 		
-		// TODO: Remove union?
-
+		// TODO: Remove unions?
 		union
 		{
 			// mask of which children have escaped merges.

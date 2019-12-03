@@ -129,11 +129,10 @@ namespace cube2_map_importer {
 			// TODO: Move this into helper section.
 			bool is_entity_inside_world(const Entity &e) const;
 			
-			// 
-			std::array<std::shared_ptr<cube>, 8> generate_8_sub_cubes(uint face = F_EMPTY, int mat = MAT_AIR);
+
 
 			// 
-			std::array<std::shared_ptr<cube>, 8> load_octree_children(const ivec &co, int size, bool &failed);
+			std::array<std::shared_ptr<cube>, 8> load_octree_node(const ivec &co, int size, bool &failed);
 
 			// 
 			void dump_decompressed_data_to_file(const std::string& file_name);
@@ -266,19 +265,16 @@ namespace cube2_map_importer {
 			bool loading_octree_failed;
 			
 			// 
-			void set_surfaces(cube &c, const surfaceinfo *surfs, const vertinfo *verts, int numverts);
+			void set_surfaces(cube &c, const surfaceinfo *surfs, const VertexInfo *verts, int numverts);
 
 			// 
 			void convert_old_surfaces(cube &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges);
 
 			// 
-			std::shared_ptr<cubeext> grow_cube_extension(std::shared_ptr<cubeext> old, int maxverts);
-
-			// 
-			void fill_cubes_with_data(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed);
+			void fill_octree_node_with_data(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed);
 			
 			// 
-			std::shared_ptr<cubeext> newcubeext(cube &c, int maxverts, bool init);
+			//std::shared_ptr<CubeExtension> newcubeext(cube &c, int maxverts, bool init);
 
 			// 
 			void edgespan2vectorcube(cube &c);

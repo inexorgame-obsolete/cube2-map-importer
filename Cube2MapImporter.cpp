@@ -260,46 +260,6 @@ namespace cube2_map_importer {
 	}
 
 
-	std::array<std::shared_ptr<cube>, 8> Cube2MapImporter::generate_8_sub_cubes(uint face, int material)
-	{
-		std::array<std::shared_ptr<cube>, 8> new_sub_cubes;
-		
-		for(std::size_t i=0; i<8; i++)
-		{
-			// Create a new shared pointer for this sub cubde.
-			new_sub_cubes[i] = std::make_shared<cube>();
-
-			// TODO: Move this to cube::cube() ?
-			new_sub_cubes[i]->extension = NULL;
-			new_sub_cubes[i]->visible = NULL;
-			new_sub_cubes[i]->merged = NULL;
-
-			for(std::size_t j=0; j<8; j++)
-			{
-				new_sub_cubes[i]->children[j] = NULL;
-			}
-        
-			for(std::size_t k=0; k<3; k++)
-			{
-				new_sub_cubes[i]->faces[k] = face;
-			}
-
-			for(std::size_t l=0; l<6; l++)
-			{
-				new_sub_cubes[i]->texture[l] = DEFAULT_GEOM;
-			}
-
-			new_sub_cubes[i]->material = material;
-		}
-
-		// Increase total number of octree nodes by 1.
-		all_octree_nodes++;
-
-		// Return a structure which contains 8 new std::shared_ptr<cube>.
-		return new_sub_cubes;
-	}
-
-
 	bool Cube2MapImporter::decompress_data()
 	{
 		// Check if the input file is empty.
@@ -1424,62 +1384,6 @@ namespace cube2_map_importer {
 	}
 
 
-	std::shared_ptr<cubeext> Cube2MapImporter::grow_cube_extension(std::shared_ptr<cubeext> old, int maxverts)
-	{
-		// TODO: Refactor!
-		//cubeext *ext = (cubeext *)new uchar[sizeof(cubeext) + maxverts*sizeof(vertinfo)];
-
-		// 
-		std::size_t memory_size = sizeof(cubeext) + maxverts * sizeof(vertinfo);
-		
-		// 
-		std::shared_ptr<cubeext> extension = std::make_shared<cubeext>();
-		
-		if(old)
-		{
-			extension->va = old->va;
-			extension->ents = old->ents;
-			extension->tjoints = old->tjoints;
-		}
-		else
-		{
-			extension->va = NULL;
-			extension->ents = NULL;
-			extension->tjoints = -1;
-		}
-
-		extension->maxverts = maxverts;
-		
-		return extension;
-	}
-
-
-	std::shared_ptr<cubeext> Cube2MapImporter::newcubeext(cube &c, int maxverts, bool init)
-	{
-		if(c.extension && c.extension->maxverts >= maxverts)
-		{
-			return c.extension;
-		}
-		
-		// Allocate more memory.
-		std::shared_ptr<cubeext> new_extension = grow_cube_extension(c.extension, maxverts);
-
-		if(init)
-		{
-			if(c.extension)
-			{
-				memcpy(new_extension->surfaces, c.extension->surfaces, sizeof(new_extension->surfaces));
-				memcpy(new_extension->verts(), c.extension->verts(), c.extension->maxverts*sizeof(vertinfo));
-			}
-			else memset(new_extension->surfaces, 0, sizeof(new_extension->surfaces)); 
-		}
-
-		c.extension = new_extension;
-
-		return new_extension;
-	}
-
-
 	ushort encodenormal(const vec &n)
 	{               
 		if(n.iszero()) return 0;
@@ -1488,166 +1392,218 @@ namespace cube2_map_importer {
 	}
 
 
-	void Cube2MapImporter::set_surfaces(cube &c, const surfaceinfo *surfs, const vertinfo *verts, int numverts)
+	cubeext *newcubeext(cube &c, int maxverts, bool init)
 	{
-		if(!c.extension || c.extension->maxverts < numverts) newcubeext(c, numverts, false);
-		memcpy(c.extension->surfaces, surfs, sizeof(c.extension->surfaces));
-		memcpy(c.extension->verts(), verts, numverts*sizeof(vertinfo));
+		if(c.ext && c.ext->maxverts >= maxverts) return c.ext;
+		cubeext *ext = growcubeext(c.ext, maxverts);
+		if(init)
+		{
+			if(c.ext)
+			{
+				memcpy(ext->surfaces, c.ext->surfaces, sizeof(ext->surfaces));
+				memcpy(ext->verts(), c.ext->verts(), c.ext->maxverts*sizeof(vertinfo));
+			}
+			else memset(ext->surfaces, 0, sizeof(ext->surfaces)); 
+		}
+		setcubeext(c, ext);
+		return ext;
 	}
+
 
 
 	void Cube2MapImporter::convert_old_surfaces(cube &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges)
 	{
 		surfaceinfo dstsurfs[6];
-		vertinfo verts[6*2*MAXFACEVERTS];
-		int totalverts = 0, numsurfs = 6;
+		
+		VertexInfo verts[6*2*MAXFACEVERTS];
+		
+		int totalverts = 0;
+		int numsurfs = 6;
+		
+		// TODO: Let the constructor do this!
 		memset(dstsurfs, 0, sizeof(dstsurfs));
-		loopi(6) if((hassurfs|hasnorms|hasmerges)&(1<<i))
+		
+		for(std::size_t i=0; i<6; i++)
 		{
-			surfaceinfo &dst = dstsurfs[i];
-			
-			vertinfo *curverts = NULL;
-			
-			int numverts = 0;
-			
-			surfacecompat *src = NULL;
-			surfacecompat *blend = NULL;
-
-			if(hassurfs&(1<<i))
+			if((hassurfs|hasnorms|hasmerges)&(1<<i))
 			{
-				src = &srcsurfs[i];
-				if(src->layer&2) 
-				{ 
-					blend = &srcsurfs[numsurfs++];
-					dst.lmid[0] = src->lmid;
-					dst.lmid[1] = blend->lmid;
-					dst.numverts |= LAYER_BLEND;
-					if(blend->lmid >= LMID_RESERVED && (src->x != blend->x || src->y != blend->y || src->w != blend->w || src->h != blend->h || memcmp(src->texcoords, blend->texcoords, sizeof(src->texcoords))))
-						dst.numverts |= LAYER_DUP;
-				}
-				else if(src->layer == 1) { dst.lmid[1] = src->lmid; dst.numverts |= LAYER_BOTTOM; }
-				else { dst.lmid[0] = src->lmid; dst.numverts |= LAYER_TOP; } 
-			}
-			else
-			{
-				dst.numverts |= LAYER_TOP;
-			}
+				surfaceinfo &dst = dstsurfs[i];
+			
+				std::shared_ptr<VertexInfo> current_vertices = NULL;
+				std::shared_ptr<surfacecompat> src = NULL;
+				std::shared_ptr<surfacecompat> blend = NULL;
+				
+				int numverts = 0;
 
-			bool uselms = hassurfs&(1<<i) && (dst.lmid[0] >= LMID_RESERVED || dst.lmid[1] >= LMID_RESERVED || dst.numverts&~LAYER_TOP),
-				 usemerges = hasmerges&(1<<i) && merges[i].u1 < merges[i].u2 && merges[i].v1 < merges[i].v2,
-				 usenorms = hasnorms&(1<<i) && normals[i].normals[0] != bvec(128, 128, 128);
-
-			if(uselms || usemerges || usenorms)
-			{
-				ivec v[4], pos[4], e1, e2, e3, n, vo = ivec(co).mask(0xFFF).shl(3);
-				genfaceverts(c, i, v); 
-				n.cross((e1 = v[1]).sub(v[0]), (e2 = v[2]).sub(v[0]));
-				if(usemerges)
+				if(hassurfs&(1<<i))
 				{
-					const mergecompat &m = merges[i];
-					
-					int offset = -n.dot(v[0].mul(size).add(vo));
-					int dim = ((i)>>1);
-					int vc = C[dim];
-					int vr = R[dim];
-					
-					loopk(4)
-					{
-						const ivec &coords = facecoords[i][k];
-						int cc = coords[vc] ? m.u2 : m.u1,
-							rc = coords[vr] ? m.v2 : m.v1,
-							dc = -(offset + n[vc]*cc + n[vr]*rc)/n[dim];
-						ivec &mv = pos[k];
-						mv[vc] = cc;
-						mv[vr] = rc;
-						mv[dim] = dc;
+					src = &srcsurfs[i];
+					if(src->layer&2) 
+					{ 
+						blend = &srcsurfs[numsurfs++];
+						dst.lmid[0] = src->lmid;
+						dst.lmid[1] = blend->lmid;
+						dst.numverts |= LAYER_BLEND;
+						if(blend->lmid >= LMID_RESERVED && (src->x != blend->x || src->y != blend->y || src->w != blend->w || src->h != blend->h || memcmp(src->texcoords, blend->texcoords, sizeof(src->texcoords))))
+							dst.numverts |= LAYER_DUP;
 					}
+					else if(src->layer == 1) { dst.lmid[1] = src->lmid; dst.numverts |= LAYER_BOTTOM; }
+					else { dst.lmid[0] = src->lmid; dst.numverts |= LAYER_TOP; } 
 				}
 				else
 				{
-					int convex = (e3 = v[0]).sub(v[3]).dot(n), vis = 3;
-					if(!convex)
-					{
-						if(ivec().cross(e3, e2).iszero()) { if(!n.iszero()) vis = 1; } 
-						else if(n.iszero()) vis = 2;
-					}
-					int order = convex < 0 ? 1 : 0;
-					pos[0] = v[order].mul(size).add(vo);
-					pos[1] = vis&1 ? v[order+1].mul(size).add(vo) : pos[0];
-					pos[2] = v[order+2].mul(size).add(vo);
-					pos[3] = vis&2 ? v[(order+3)&3].mul(size).add(vo) : pos[0];
+					dst.numverts |= LAYER_TOP;
 				}
-				curverts = verts + totalverts;
-				loopk(4)
-				{
-					if(k > 0 && (pos[k] == pos[0] || pos[k] == pos[k-1])) continue;
-					vertinfo &dv = curverts[numverts++];
-					dv.setxyz(pos[k]);
 
-					if(uselms)
-					{
-						float u = src->x + (src->texcoords[k*2] / 255.0f) * (src->w - 1),
-							  v = src->y + (src->texcoords[k*2+1] / 255.0f) * (src->h - 1);
-						dv.u = ushort(floor(clamp((u) * float(USHRT_MAX+1)/LM_PACKW + 0.5f, 0.0f, float(USHRT_MAX))));
-						dv.v = ushort(floor(clamp((v) * float(USHRT_MAX+1)/LM_PACKH + 0.5f, 0.0f, float(USHRT_MAX))));
-					}
-					else dv.u = dv.v = 0;
-					dv.norm = usenorms && normals[i].normals[k] != bvec(128, 128, 128) ? encodenormal(normals[i].normals[k].tovec().normalize()) : 0;
-				}
-				dst.verts = totalverts;
-				dst.numverts |= numverts;
-				totalverts += numverts;
-				if(dst.numverts&LAYER_DUP) loopk(4)
+				bool uselms = hassurfs&(1<<i) && (dst.lmid[0] >= LMID_RESERVED || dst.lmid[1] >= LMID_RESERVED || dst.numverts&~LAYER_TOP),
+					 usemerges = hasmerges&(1<<i) && merges[i].u1 < merges[i].u2 && merges[i].v1 < merges[i].v2,
+					 usenorms = hasnorms&(1<<i) && normals[i].normals[0] != bvec(128, 128, 128);
+
+				if(uselms || usemerges || usenorms)
 				{
-					if(k > 0 && (pos[k] == pos[0] || pos[k] == pos[k-1])) continue;
-					vertinfo &bv = verts[totalverts++];
-					bv.setxyz(pos[k]);
-					bv.u = ushort(floor(clamp((blend->x + (blend->texcoords[k*2] / 255.0f) * (blend->w - 1)) * float(USHRT_MAX+1)/LM_PACKW, 0.0f, float(USHRT_MAX))));
-					bv.v = ushort(floor(clamp((blend->y + (blend->texcoords[k*2+1] / 255.0f) * (blend->h - 1)) * float(USHRT_MAX+1)/LM_PACKH, 0.0f, float(USHRT_MAX))));
-					bv.norm = usenorms && normals[i].normals[k] != bvec(128, 128, 128) ? encodenormal(normals[i].normals[k].tovec().normalize()) : 0;
-				}
-			}    
+					ivec v[4], pos[4], e1, e2, e3, n, vo = ivec(co).mask(0xFFF).shl(3);
+					genfaceverts(c, i, v); 
+					n.cross((e1 = v[1]).sub(v[0]), (e2 = v[2]).sub(v[0]));
+					if(usemerges)
+					{
+						const mergecompat &m = merges[i];
+					
+						int offset = -n.dot(v[0].mul(size).add(vo));
+						int dim = ((i)>>1);
+						int vc = C[dim];
+						int vr = R[dim];
+					
+						loopk(4)
+						{
+							const ivec &coords = facecoords[i][k];
+							int cc = coords[vc] ? m.u2 : m.u1,
+								rc = coords[vr] ? m.v2 : m.v1,
+								dc = -(offset + n[vc]*cc + n[vr]*rc)/n[dim];
+							ivec &mv = pos[k];
+							mv[vc] = cc;
+							mv[vr] = rc;
+							mv[dim] = dc;
+						}
+					}
+					else
+					{
+						int convex = (e3 = v[0]).sub(v[3]).dot(n), vis = 3;
+						if(!convex)
+						{
+							if(ivec().cross(e3, e2).iszero())
+							{
+								if(!n.iszero())
+								{
+									vis = 1;
+								}
+							} 
+							else
+							{
+								if(n.iszero())
+								{
+									vis = 2;
+								}
+							}
+						}
+						int order = convex < 0 ? 1 : 0;
+						pos[0] = v[order].mul(size).add(vo);
+						pos[1] = vis&1 ? v[order+1].mul(size).add(vo) : pos[0];
+						pos[2] = v[order+2].mul(size).add(vo);
+						pos[3] = vis&2 ? v[(order+3)&3].mul(size).add(vo) : pos[0];
+					}
+
+					curverts = verts + totalverts;
+
+					for(std::size_t k=0; k<4; k++)
+					{
+						if(k > 0 && (pos[k] == pos[0] || pos[k] == pos[k-1])) continue;
+						
+						VertexInfo &dv = curverts[numverts++];
+
+						dv.setxyz(pos[k]);
+
+						if(uselms)
+						{
+							float u = src->x + (src->texcoords[k*2] / 255.0f) * (src->w - 1),
+								  v = src->y + (src->texcoords[k*2+1] / 255.0f) * (src->h - 1);
+
+							dv.u = ushort(floor(clamp((u) * float(USHRT_MAX+1)/LM_PACKW + 0.5f, 0.0f, float(USHRT_MAX))));
+							dv.v = ushort(floor(clamp((v) * float(USHRT_MAX+1)/LM_PACKH + 0.5f, 0.0f, float(USHRT_MAX))));
+						}
+						else dv.u = dv.v = 0;
+						dv.norm = usenorms && normals[i].normals[k] != bvec(128, 128, 128) ? encodenormal(normals[i].normals[k].tovec().normalize()) : 0;
+					}
+					dst.verts = totalverts;
+					dst.numverts |= numverts;
+					totalverts += numverts;
+					if(dst.numverts&LAYER_DUP) loopk(4)
+					{
+						if(k > 0 && (pos[k] == pos[0] || pos[k] == pos[k-1]))
+						{
+							continue;
+						}
+						
+						VertexInfo &bv = verts[totalverts++];
+						bv.setxyz(pos[k]);
+
+						bv.u = ushort(floor(clamp((blend->x + (blend->texcoords[k*2] / 255.0f) * (blend->w - 1)) * float(USHRT_MAX+1)/LM_PACKW, 0.0f, float(USHRT_MAX))));
+						bv.v = ushort(floor(clamp((blend->y + (blend->texcoords[k*2+1] / 255.0f) * (blend->h - 1)) * float(USHRT_MAX+1)/LM_PACKH, 0.0f, float(USHRT_MAX))));
+
+						// TODO: Resolve!
+						bv.norm = usenorms && normals[i].normals[k] != bvec(128, 128, 128) ? encodenormal(normals[i].normals[k].tovec().normalize()) : 0;
+					}
+				}    
+			}
 		}
 
 		set_surfaces(c, dstsurfs, verts, totalverts);
 	}
 
 
-	void Cube2MapImporter::fill_cubes_with_data(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed)
+	void Cube2MapImporter::fill_octree_node_with_data(const std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed)
 	{
+		// ok
 		bool haschildren = false;
-    
+		
+		// ok
 		int octsav = read_one_byte_from_buffer();
 
+		// ok
 		switch(octsav&0x7)
 		{
 			case OCTSAV_CHILDREN:
 			{
-				c->children = load_octree_children(co, size>>1, failed);
+				// ok 
+				c->children = load_octree_node(co, size>>1, failed);
 				return;
 			}
 			case OCTSAV_LODCUBE:
 			{
+				// ok
 				haschildren = true;
 				break;
 			}
 			case OCTSAV_EMPTY:
 			{
+				// ok
 				c->faces[0] = c->faces[1] = c->faces[2] = F_EMPTY;
 				break;
 			}
 			case OCTSAV_SOLID:
 			{
+				// ok
 				c->faces[0] = c->faces[1] = c->faces[2] = F_SOLID;
 				break;
 			}
 			case OCTSAV_NORMAL:
 			{
+				// ok 
 				read_memory_into_structure(&c->edges[0], 12, sizeof(c->edges));
 				break;
 			}
 			default:
 			{
+				// ok 
 				failed = true;
 				return;
 			}
@@ -1657,29 +1613,39 @@ namespace cube2_map_importer {
 		{
 			if(map_header.version < 14)
 			{
+				// ok
 				c->texture[i] = read_one_byte_from_buffer();
 			}
 			else
 			{
 				// So after mapversion 14 this is an unsigned short instead of one single byte.
+				// ok 
 				c->texture[i] = read_unsigned_short_from_buffer();
 			}
 		}
 
+
+		// 
 		if(map_header.version < 7)
 		{
+			// ok 
 			skip_reading_buffer_bytes(3);
 		}
 		else if(map_header.version <= 31)
 		{
+			// ok 
 			uchar mask = read_one_byte_from_buffer();
 
+			// ok 
 			if(mask & 0x80) 
 			{
+				// ok 
 				int mat = read_one_byte_from_buffer();
 
+				// ok 
 				if(map_header.version < 27)
 				{
+					// ok 
 					static const ushort matconv[] = {
 						MAT_AIR,
 						MAT_WATER,
@@ -1691,106 +1657,166 @@ namespace cube2_map_importer {
 					};
 
 					// TODO: Resolve!
-					c->material = size_t(mat) < sizeof(matconv)/sizeof(matconv[0]) ? matconv[mat] : MAT_AIR;
+					if(size_t(mat) < sizeof(matconv)/sizeof(matconv[0]))
+					{
+						// ok 
+						c->material = matconv[mat];
+					}
+					else
+					{
+						// ok 
+						c->material = MAT_AIR;
+					}
 				}
 				else
 				{
+					// ok 
 					c->material = convertoldmaterial(mat);
 				}
 			}
 			
+			// ok 
 			surfacecompat surfaces[12];
-			
+			// ok 
 			normalscompat normals[6];
-			
+			// ok 
 			mergecompat merges[6];
 
 			int hassurfs = 0;
-
 			int hasnorms = 0;
-			
 			int hasmerges = 0;
 
+			// ok 
 			if(mask & 0x3F)
 			{
+				// ok 
 				int numsurfs = 6;
 
+				// ok 
 				for(int i=0; i<numsurfs; i++)
 				{
+					// ok 
 					if(i >= 6 || mask & (1 << i))
 					{
+						// ok 
 						read_memory_into_structure(&surfaces[i], sizeof(surfacecompat), sizeof(surfacecompat));
 
+						// ok 
 						if(map_header.version < 10)
 						{
 							++surfaces[i].lmid;
 						}
+
+						// ok 
 						if(map_header.version < 18)
 						{
+							// ok 
 							if(surfaces[i].lmid >= LMID_AMBIENT1) ++surfaces[i].lmid;
+							// ok 
 							if(surfaces[i].lmid >= LMID_BRIGHT1) ++surfaces[i].lmid;
 						}
+						
+						// ok 
 						if(map_header.version < 19)
 						{
+							// ok 
 							if(surfaces[i].lmid >= LMID_DARK) surfaces[i].lmid += 2;
 						}
+
+						// ok 
 						if(i < 6)
 						{
 							if(mask & 0x40)
 							{
+								// ok 
 								hasnorms |= 1<<i;
+
+								// ok
 								read_memory_into_structure(&normals[i], sizeof(normalscompat), sizeof(normalscompat));
 							}
-							if(surfaces[i].layer != 0 || surfaces[i].lmid != LMID_AMBIENT) 
+
+							// ok 
+							if(surfaces[i].layer != 0 || surfaces[i].lmid != LMID_AMBIENT)
+							{
+								// ok 
 								hassurfs |= 1<<i;
-							if(surfaces[i].layer&2) numsurfs++;
+							}
+
+							// ok 
+							if(surfaces[i].layer&2)
+							{
+								numsurfs++;
+							}
 						}
 					}
 				}
 			}
 
+			// ok 
 			if(map_header.version <= 8)
 			{
+				// ok 
 				edgespan2vectorcube(*c);
 			}
 
+			// ok 
 			if(map_header.version <= 11)
 			{
+				// ok 
 				swap(c->faces[0], c->faces[2]);
 				swap(c->texture[0], c->texture[4]);
 				swap(c->texture[1], c->texture[5]);
+
+				// ok 
 				if(hassurfs&0x33)
 				{
 					swap(surfaces[0], surfaces[4]);
 					swap(surfaces[1], surfaces[5]);
+
 					hassurfs = (hassurfs&~0x33) | ((hassurfs&0x30)>>4) | ((hassurfs&0x03)<<4);
 				}
-			}
+			}	
 
+			// ok
 			if(map_header.version >= 20)
 			{
+				// ok 
 				if(octsav&0x80)
 				{
+					// ok 
 					int merged = read_one_byte_from_buffer();
+
+					// ok 
 					c->merged = merged&0x3F;
+
+					// ok 
 					if(merged&0x80)
 					{
+						// ok 
 						int mask = read_one_byte_from_buffer();
+
 						if(mask)
 						{
+							// ok 
 							hasmerges = mask&0x3F;
 							
 							for(std::size_t i=0; i<6; i++)
 							{
 								if(mask&(1<<i))
 								{
+									// ok 
 									mergecompat *m = &merges[i];
 									
+									// ok 
 									read_memory_into_structure(&m, sizeof(mergecompat), sizeof(mergecompat));
 									
 									if(map_header.version <= 25)
 									{
-										int uorigin = m->u1 & 0xE000, vorigin = m->v1 & 0xE000;
+										// ok 
+										int uorigin = m->u1 & 0xE000;
+										// ok 
+										int vorigin = m->v1 & 0xE000;
+										// ok 
 										m->u1 = (m->u1 - uorigin) << 2;
 										m->u2 = (m->u2 - uorigin) << 2;
 										m->v1 = (m->v1 - vorigin) << 2;
@@ -1803,175 +1829,265 @@ namespace cube2_map_importer {
 				}    
 			}
 
+			// ok 
 			if(hassurfs || hasnorms || hasmerges)
 			{
+				// ok 
 				convert_old_surfaces(*c, co, size, surfaces, hassurfs, normals, hasnorms, merges, hasmerges);
 			}
 		}
 		else
 		{
+			// ok 
 			if(octsav&0x40) 
 			{
+				// ok 
 				if(map_header.version <= 32)
 				{
+					// ok 
 					int mat = read_one_byte_from_buffer();
+					// ok 
 					c->material = convertoldmaterial(mat);
 				}
-				else c->material = read_unsigned_short_from_buffer();
+				else
+				{
+					// ok 
+					c->material = read_unsigned_short_from_buffer();
+				}
 			}
 
+			// ok 
 			if(octsav&0x80)
 			{
 				c->merged = read_one_byte_from_buffer();
 			}
 
+			// ok 
 			if(octsav&0x20)
 			{
+				// ok 
 				int surfmask = read_one_byte_from_buffer();
 				int totalverts = read_one_byte_from_buffer();
 				int offset = 0;
 				
-				newcubeext(*c, totalverts, false);
+				// TODO: Fix!
+				newcubeext(c, totalverts, false);
 
-				memset(c->extension->surfaces, 0, sizeof(c->extension->surfaces));
-				memset(c->extension->verts(), 0, totalverts*sizeof(vertinfo));
+				memset(c.ext->surfaces, 0, sizeof(c.ext->surfaces));
+				memset(c.ext->verts(), 0, totalverts*sizeof(vertinfo));
 				
+				// ok 
 				for(std::size_t i=0; i<6; i++)
 				{
+					// ok 
 					if(surfmask&(1<<i)) 
 					{
+						// ok 
 						surfaceinfo &surf = c->extension->surfaces[i];
 						
+						// ok 
 						read_memory_into_structure(&surf, sizeof(surfacecompat), sizeof(surfacecompat));
 
-						int vertmask = surf.verts, numverts = surf.totalverts();
+						// ok 
+						int vertmask = surf.verts;
+						int numverts = surf.totalverts();
 						
+						// ok 
 						if(!numverts)
 						{
 							surf.verts = 0;
 							continue;
 						}
 						
+						// ok 
 						surf.verts = offset;
-						vertinfo *verts = c->extension->verts() + offset;
+						
+						// ok 
+						vertinfo *verts = c.ext->verts() + offset;
+
+						// ok 
 						offset += numverts;
+
+						// ok 
 						ivec v[4], n;
 						
+						// ok 
 						int layerverts = surf.numverts&MAXFACEVERTS;
-						
 						int dim = ((i)>>1);
 						int vc = C[dim];
 						int vr = R[dim];
 						int bias = 0;
 						
+						// ok 
 						genfaceverts(*c, i, v);
 
+						// ok 
 						bool hasxyz = (vertmask&0x04)!=0;
 						bool hasuv = (vertmask&0x40)!=0;
 						bool hasnorm = (vertmask&0x80)!=0;
 						
+						// ok 
 						if(hasxyz)
-						{ 
+						{
+							// ok 
 							ivec e1, e2, e3;
+							// ok 
 							n.cross((e1 = v[1]).sub(v[0]), (e2 = v[2]).sub(v[0]));   
-							if(n.iszero()) n.cross(e2, (e3 = v[3]).sub(v[0]));
+							
+							// ok 
+							if(n.iszero())
+							{
+								n.cross(e2, (e3 = v[3]).sub(v[0]));
+							}
+
+							// ok 
 							bias = -n.dot(ivec(v[0]).mul(size).add(ivec(co).mask(0xFFF).shl(3)));
 						}
 						else
 						{
-							// TODO: Resolve!
-							int vis = layerverts < 4 ? (vertmask&0x02 ? 2 : 1) : 3, order = vertmask&0x01 ? 1 : 0, k = 0;
+							// ok 
+							// TODO: Resolve
+							int vis = layerverts < 4 ? (vertmask&0x02 ? 2 : 1) : 3;
+							int order = vertmask&0x01 ? 1 : 0;
+							int k = 0;
 
+							// ok 
 							ivec vo = ivec(co).mask(0xFFF).shl(3);
 
+							// ok 
 							verts[k++].setxyz(v[order].mul(size).add(vo));
 							
+							// ok 
 							if(vis&1)
 							{
 								verts[k++].setxyz(v[order+1].mul(size).add(vo));
 							}
 
+							// ok 
 							verts[k++].setxyz(v[order+2].mul(size).add(vo));
 							
+							// ok 
 							if(vis&2)
 							{
 								verts[k++].setxyz(v[(order+3)&3].mul(size).add(vo));
 							}
 						}
 
+						// ok 
 						if(layerverts == 4)
 						{
+							// ok 
 							if(hasxyz && vertmask&0x01)
 							{
+								// ok 
 								ushort c1 = read_unsigned_short_from_buffer();
 								ushort r1 = read_unsigned_short_from_buffer();
 								ushort c2 = read_unsigned_short_from_buffer();
 								ushort r2 = read_unsigned_short_from_buffer();
 
+								// ok 
 								ivec xyz;
 								
-								xyz[vc] = c1; xyz[vr] = r1; xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
+								xyz[vc] = c1; xyz[vr] = r1;
+								xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
 								verts[0].setxyz(xyz);
-								xyz[vc] = c1; xyz[vr] = r2; xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
+
+								xyz[vc] = c1; xyz[vr] = r2;
+								xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
 								verts[1].setxyz(xyz);
-								xyz[vc] = c2; xyz[vr] = r2; xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
+								
+								xyz[vc] = c2; xyz[vr] = r2;
+								xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
 								verts[2].setxyz(xyz);
-								xyz[vc] = c2; xyz[vr] = r1; xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
+								
+								xyz[vc] = c2; xyz[vr] = r1;
+								xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
 								verts[3].setxyz(xyz);
 								
+								// ok 
 								hasxyz = false;
 							}
+
+							// ok 
 							if(hasuv && vertmask&0x02)
 							{
+								// ok 
 								int uvorder = (vertmask&0x30)>>4;
 								
-								vertinfo &v0 = verts[uvorder], &v1 = verts[(uvorder+1)&3], &v2 = verts[(uvorder+2)&3], &v3 = verts[(uvorder+3)&3]; 
+								// ok 
+								VertexInfo &v0 = verts[uvorder];
+								VertexInfo &v1 = verts[(uvorder+1)&3];
+								VertexInfo &v2 = verts[(uvorder+2)&3];
+								VertexInfo &v3 = verts[(uvorder+3)&3]; 
 								
+								// ok 
 								v0.u = read_unsigned_short_from_buffer();
 								v0.v = read_unsigned_short_from_buffer();
 								v2.u = read_unsigned_short_from_buffer();
 								v2.v = read_unsigned_short_from_buffer();
+
+								// ok 
 								v1.u = v0.u; v1.v = v2.v;
 								v3.u = v2.u; v3.v = v0.v;
 								
+								// ok 
 								if(surf.numverts&LAYER_DUP)
 								{
-									vertinfo &b0 = verts[4+uvorder], &b1 = verts[4+((uvorder+1)&3)], &b2 = verts[4+((uvorder+2)&3)], &b3 = verts[4+((uvorder+3)&3)];
+									// ok 
+									VertexInfo &b0 = verts[4+uvorder];
+									VertexInfo &b1 = verts[4+((uvorder+1)&3)];
+									VertexInfo &b2 = verts[4+((uvorder+2)&3)];
+									VertexInfo &b3 = verts[4+((uvorder+3)&3)];
 
+									// ok 
 									b0.u = read_unsigned_short_from_buffer();
 									b0.v = read_unsigned_short_from_buffer();
 									b2.u = read_unsigned_short_from_buffer();
 									b2.v = read_unsigned_short_from_buffer();
 									
-									b1.u = b0.u; b1.v = b2.v;
-									b3.u = b2.u; b3.v = b0.v;
+									// ok 
+									b1.u = b0.u;
+									b1.v = b2.v;
+									b3.u = b2.u;
+									b3.v = b0.v;
 								}
+
+								// ok 
 								hasuv = false;
 							} 
 						}
 
+						// ok 
 						if(hasnorm && vertmask&0x08)
 						{
+							// ok 
 							ushort norm = read_unsigned_short_from_buffer();
 							
+							// ok 
 							for(int k=0; k<layerverts; k++)
 							{
 								verts[k].norm = norm;
 							}
+
+							// ok 
 							hasnorm = false;
 						}
 						
+						// ok 
 						if(hasxyz || hasuv || hasnorm)
 						{
 							for(int k=0; k<layerverts; k++)
 							{
-								vertinfo &v = verts[k];
+								VertexInfo &v = verts[k];
+
 								if(hasxyz)
 								{
 									ivec xyz;
+
 									xyz[vc] = read_unsigned_short_from_buffer();
 									xyz[vr] = read_unsigned_short_from_buffer();
 									xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
+
 									v.setxyz(xyz);
 								}
 								if(hasuv)
@@ -1984,20 +2100,28 @@ namespace cube2_map_importer {
 									v.norm = read_unsigned_short_from_buffer();
 								}
 							}
+						}
 
-							if(surf.numverts&LAYER_DUP)
+						// ok 
+						if(surf.numverts&LAYER_DUP)
+						{
+							for(int k=0; k<layerverts; k++)
 							{
-								for(int k=0; k<layerverts; k++)
+								// ok 
+								VertexInfo &v = verts[k+layerverts];
+								VertexInfo &t = verts[k];
+									
+								v.setxyz(t.x, t.y, t.z);
+
+								// ok 
+								if(hasuv)
 								{
-									vertinfo &v = verts[k+layerverts], &t = verts[k];
-									v.setxyz(t.x, t.y, t.z);
-									if(hasuv)
-									{
-										v.u = read_unsigned_short_from_buffer();
-										v.v = read_unsigned_short_from_buffer();
-									}
-									v.norm = t.norm;
+									v.u = read_unsigned_short_from_buffer();
+									v.v = read_unsigned_short_from_buffer();
 								}
+
+								// ok 
+								v.norm = t.norm;
 							}
 						}
 					}
@@ -2005,13 +2129,15 @@ namespace cube2_map_importer {
 			}    
 		}
 
+		// ok 
 		if(haschildren)
 		{	
 			// This node has children, load them as well!
-			c->children = load_octree_children(co, size>>1, failed);
+			c->children = load_octree_node(co, size>>1, failed);
 		}
 		else
 		{
+			// TODO: Those should be NULL anyways because of the constructor, right?
 			for(std::size_t i=0; i<8; i++)
 			{
 				c->children[i] = NULL;
@@ -2020,32 +2146,44 @@ namespace cube2_map_importer {
 	}
 
 
-	std::array<std::shared_ptr<cube>, 8> Cube2MapImporter::load_octree_children(const ivec &co, int size, bool &failed)
+
+	std::array<std::shared_ptr<cube>, 8> Cube2MapImporter::load_octree_node(const ivec &co, int size, bool &failed)
 	{
-		// Generate 8 new sub cubes.
-		std::array<std::shared_ptr<cube>, 8> generated_sub_cubes = generate_8_sub_cubes();
+		// The 8 sub-cubes of this octree node.
+		// They might be NULL if this octree node is a leaf node.
+		std::array<std::shared_ptr<cube>, 8> octree_node;
 		
+		// Increase the total number of existing octree nodes.
+		all_octree_nodes++;
+
 		for(std::size_t i=0; i<8; i++)
 		{
-			// Fill the sub cubes with data.
-			fill_cubes_with_data(generated_sub_cubes[i], ivec(i, co.x, co.y, co.z, size), size, failed);
+			// Create a new shared pointer for every sub-cube.
+			octree_node[i] = std::make_shared<cube>();
 
+			// Fill the sub cubes with data.
+			fill_octree_node_with_data(octree_node[i], ivec(i, co.x, co.y, co.z, size), size, failed);
+
+			// TODO: Refactor this!
 			if(failed)
 			{
 				break;
 			}
 		}
 
-		return generated_sub_cubes;
+		return octree_node;
 	}
-	
+
 
 	bool Cube2MapImporter::parse_octree()
 	{
 		cout << "Loading octree geometry." << endl;
 
+		// TODO: Remove "loading_octree_failed" since it's a class member.
+
 		// Load the root of the octree game world.
-		octree_world_root->children = load_octree_children(ivec(0, 0, 0), map_header.worldsize >> 1, loading_octree_failed);
+		// TODO: Refactor function call!
+		octree_world_root->children = load_octree_node(ivec(0, 0, 0), map_header.worldsize >> 1, loading_octree_failed);
 
 		cout << "Loading octree finished." << endl;
 
