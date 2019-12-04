@@ -358,7 +358,8 @@ namespace cube2_map_importer {
 		// We use std::array to enable multiple (8) return values for functions.
 		std::array<std::shared_ptr<cube>, 8> children;
 
-		// TODO: Debug!
+
+		// Default constructor.
 		cube(uint face = F_EMPTY, int mat = MAT_AIR)
 		{
 			for(std::size_t i=0; i<8; i++)
@@ -380,7 +381,7 @@ namespace cube2_map_importer {
 				texture[l] = DEFAULT_GEOM;
 			}
 
-			material = material;
+			material = mat;
 		}
 
 
