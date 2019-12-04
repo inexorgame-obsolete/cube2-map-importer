@@ -2175,7 +2175,10 @@ namespace cube2_map_importer {
 	{
 		cout << "Loading octree geometry." << endl;
 
-		// TODO: Remove "loading_octree_failed" since it's a class member.
+		// Create a shared pointer for the world root!
+		// It is important to do this before calling load_octree_node
+		// since otherwise the function will return std::nullptr!
+		octree_world_root = std::make_shared<cube>();
 
 		// Load the root of the octree game world.
 		// TODO: Refactor function call!
