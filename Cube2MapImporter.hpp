@@ -141,6 +141,7 @@ namespace cube2_map_importer {
 			// 
 			void set_surfaces(cube &c, const surfaceinfo *surfs, const VertexInfo *verts, int numverts);
 
+
 		protected:
 
 			// Read memory from buffer and use it to fill out a structure.
@@ -187,6 +188,7 @@ namespace cube2_map_importer {
 			
 			// 
 			void print_rgb_color_to_stdcout(RGBColor output_color);
+
 
 		protected:
 			

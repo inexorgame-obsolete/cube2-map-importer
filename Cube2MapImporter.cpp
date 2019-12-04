@@ -1143,9 +1143,9 @@ namespace cube2_map_importer {
 
 		// Initialise a vector of VSlots for preview.
 		// Allocate the required memory and fill it with -1.
-		// TODO: Check if we should change the vector to int?
-		std::vector<int> preview_vslots(map_header.number_of_vslots, -1);
-			
+		// TODO: Shouldn't we initiate with -1 as value?
+		std::vector<std::size_t> preview_vslots(map_header.number_of_vslots, 0);
+		
 		// TODO: reserve memory in advance to minimize allocation.
 
 		// How many VSlots to load?
@@ -1507,9 +1507,7 @@ namespace cube2_map_importer {
 				{
 					ivec v[4], pos[4], e1, e2, e3, n, vo = ivec(co).mask(0xFFF).shl(3);
 					
-					cube test = *c;
-
-					genfaceverts(test, i, v); 
+					genfaceverts(*c, i, v); 
 
 					n.cross((e1 = v[1]).sub(v[0]), (e2 = v[2]).sub(v[0]));
 					
@@ -1631,48 +1629,39 @@ namespace cube2_map_importer {
 
 	void Cube2MapImporter::fill_octree_node_with_data(std::shared_ptr<cube>& c, const ivec &co, int size, bool &failed)
 	{
-		// ok
 		bool haschildren = false;
 		
-		// ok
 		int octsav = read_one_byte_from_buffer();
 
-		// ok
 		switch(octsav&0x7)
 		{
 			case OCTSAV_CHILDREN:
 			{
-				// ok 
 				c->children = load_octree_node(co, size>>1, failed);
 				return;
 			}
 			case OCTSAV_LODCUBE:
 			{
-				// ok
 				haschildren = true;
 				break;
 			}
 			case OCTSAV_EMPTY:
 			{
-				// ok
 				c->faces[0] = c->faces[1] = c->faces[2] = F_EMPTY;
 				break;
 			}
 			case OCTSAV_SOLID:
 			{
-				// ok
 				c->faces[0] = c->faces[1] = c->faces[2] = F_SOLID;
 				break;
 			}
 			case OCTSAV_NORMAL:
 			{
-				// ok 
 				read_memory_into_structure(&c->edges[0], 12, sizeof(c->edges));
 				break;
 			}
 			default:
 			{
-				// ok 
 				failed = true;
 				return;
 			}
@@ -1682,39 +1671,28 @@ namespace cube2_map_importer {
 		{
 			if(map_header.version < 14)
 			{
-				// ok
 				c->texture[i] = read_one_byte_from_buffer();
 			}
 			else
 			{
-				// So after mapversion 14 this is an unsigned short instead of one single byte.
-				// ok 
 				c->texture[i] = read_unsigned_short_from_buffer();
 			}
 		}
 
-
-		// 
 		if(map_header.version < 7)
 		{
-			// ok 
 			skip_reading_buffer_bytes(3);
 		}
 		else if(map_header.version <= 31)
 		{
-			// ok 
 			uchar mask = read_one_byte_from_buffer();
 
-			// ok 
 			if(mask & 0x80) 
 			{
-				// ok 
 				int mat = read_one_byte_from_buffer();
 
-				// ok 
 				if(map_header.version < 27)
 				{
-					// ok 
 					static const ushort matconv[] = {
 						MAT_AIR,
 						MAT_WATER,
@@ -1725,93 +1703,79 @@ namespace cube2_map_importer {
 						MAT_GAMECLIP, MAT_DEATH
 					};
 
-					// TODO: Resolve!
 					if(size_t(mat) < sizeof(matconv)/sizeof(matconv[0]))
 					{
-						// ok 
 						c->material = matconv[mat];
 					}
 					else
 					{
-						// ok 
 						c->material = MAT_AIR;
 					}
 				}
 				else
 				{
-					// ok 
 					c->material = convertoldmaterial(mat);
 				}
 			}
 			
-			// ok 
 			surfacecompat surfaces[12];
-			// ok 
 			normalscompat normals[6];
-			// ok 
 			mergecompat merges[6];
 
 			int hassurfs = 0;
 			int hasnorms = 0;
 			int hasmerges = 0;
 
-			// ok 
 			if(mask & 0x3F)
 			{
-				// ok 
 				int numsurfs = 6;
 
-				// ok 
 				for(int i=0; i<numsurfs; i++)
 				{
-					// ok 
 					if(i >= 6 || mask & (1 << i))
 					{
-						// ok 
 						read_memory_into_structure(&surfaces[i], sizeof(surfacecompat), sizeof(surfacecompat));
 
-						// ok 
 						if(map_header.version < 10)
 						{
 							++surfaces[i].lmid;
 						}
 
-						// ok 
 						if(map_header.version < 18)
 						{
-							// ok 
-							if(surfaces[i].lmid >= LMID_AMBIENT1) ++surfaces[i].lmid;
-							// ok 
-							if(surfaces[i].lmid >= LMID_BRIGHT1) ++surfaces[i].lmid;
+							if(surfaces[i].lmid >= LMID_AMBIENT1)
+							{
+								++surfaces[i].lmid;
+							}
+							
+							if(surfaces[i].lmid >= LMID_BRIGHT1)
+							{
+								++surfaces[i].lmid;
+							}
 						}
 						
-						// ok 
 						if(map_header.version < 19)
 						{
-							// ok 
-							if(surfaces[i].lmid >= LMID_DARK) surfaces[i].lmid += 2;
+							if(surfaces[i].lmid >= LMID_DARK)
+							{
+								surfaces[i].lmid += 2;
+							}
 						}
 
-						// ok 
 						if(i < 6)
 						{
 							if(mask & 0x40)
 							{
-								// ok 
 								hasnorms |= 1<<i;
 
-								// ok
 								read_memory_into_structure(&normals[i], sizeof(normalscompat), sizeof(normalscompat));
 							}
 
-							// ok 
 							if(surfaces[i].layer != 0 || surfaces[i].lmid != LMID_AMBIENT)
 							{
-								// ok 
 								hassurfs |= 1<<i;
 							}
 
-							// ok 
 							if(surfaces[i].layer&2)
 							{
 								numsurfs++;
@@ -1821,22 +1785,17 @@ namespace cube2_map_importer {
 				}
 			}
 
-			// ok 
 			if(map_header.version <= 8)
 			{
-				// ok 
 				edgespan2vectorcube(c);
 			}
 
-			// ok 
 			if(map_header.version <= 11)
 			{
-				// ok 
 				swap(c->faces[0], c->faces[2]);
 				swap(c->texture[0], c->texture[4]);
 				swap(c->texture[1], c->texture[5]);
 
-				// ok 
 				if(hassurfs&0x33)
 				{
 					swap(surfaces[0], surfaces[4]);
@@ -1846,46 +1805,35 @@ namespace cube2_map_importer {
 				}
 			}	
 
-			// ok
 			if(map_header.version >= 20)
 			{
-				// ok 
 				if(octsav&0x80)
 				{
-					// ok 
 					int merged = read_one_byte_from_buffer();
 
-					// ok 
 					c->merged = merged&0x3F;
 
-					// ok 
 					if(merged&0x80)
 					{
-						// ok 
 						int mask = read_one_byte_from_buffer();
 
 						if(mask)
 						{
-							// ok 
 							hasmerges = mask&0x3F;
 							
 							for(std::size_t i=0; i<6; i++)
 							{
 								if(mask&(1<<i))
 								{
-									// ok 
 									mergecompat *m = &merges[i];
 									
-									// ok 
 									read_memory_into_structure(&m, sizeof(mergecompat), sizeof(mergecompat));
 									
 									if(map_header.version <= 25)
 									{
-										// ok 
 										int uorigin = m->u1 & 0xE000;
-										// ok 
 										int vorigin = m->v1 & 0xE000;
-										// ok 
+
 										m->u1 = (m->u1 - uorigin) << 2;
 										m->u2 = (m->u2 - uorigin) << 2;
 										m->v1 = (m->v1 - vorigin) << 2;
@@ -1898,168 +1846,132 @@ namespace cube2_map_importer {
 				}    
 			}
 
-			// ok 
 			if(hassurfs || hasnorms || hasmerges)
 			{
-				// ok 
 				convert_old_surfaces(c, co, size, surfaces, hassurfs, normals, hasnorms, merges, hasmerges);
 			}
 			
 		}
 		else
 		{
-			// ok 
 			if(octsav&0x40) 
 			{
-				// ok 
 				if(map_header.version <= 32)
 				{
-					// ok 
 					int mat = read_one_byte_from_buffer();
-					// ok 
+
 					c->material = convertoldmaterial(mat);
 				}
 				else
 				{
-					// ok 
 					c->material = read_unsigned_short_from_buffer();
 				}
 			}
 
-			// ok 
 			if(octsav&0x80)
 			{
 				c->merged = read_one_byte_from_buffer();
 			}
 
-			// ok 
 			if(octsav&0x20)
 			{
-				// ok 
 				int surfmask = read_one_byte_from_buffer();
 				int totalverts = read_one_byte_from_buffer();
 				int offset = 0;
 				
-				// TODO: Fix this!				
-				cube test = *c;
-				new_cube_extension(test, totalverts, false);
+				new_cube_extension(*c, totalverts, false);
 
 				memset(c->extension->surfaces, 0, sizeof(c->extension->surfaces));
 				memset(c->extension->verts(), 0, totalverts*sizeof(VertexInfo));
 
-				// ok 
 				for(std::size_t i=0; i<6; i++)
 				{
-					// ok 
 					if(surfmask&(1<<i)) 
 					{
-						// ok 
 						surfaceinfo &surf = c->extension->surfaces[i];
 						
-						// ok 
 						read_memory_into_structure(&surf, sizeof(surfacecompat), sizeof(surfacecompat));
 
-						// ok 
 						int vertmask = surf.verts;
 						int numverts = surf.totalverts();
 						
-						// ok 
 						if(!numverts)
 						{
 							surf.verts = 0;
 							continue;
 						}
 						
-						// ok 
 						surf.verts = offset;
 						
-						// ok 
+						// ?? What is this pointer arithmetic doing?
+						// Why use ->verts() to get the address??
 						VertexInfo *verts = c->extension->verts() + offset;
 
-						// ok 
 						offset += numverts;
 
-						// ok 
-						ivec v[4], n;
+						ivec v[4];
+						ivec n;
 						
-						// ok 
 						int layerverts = surf.numverts&MAXFACEVERTS;
 						int dim = ((i)>>1);
 						int vc = C[dim];
 						int vr = R[dim];
 						int bias = 0;
-						
-						// TODO: Does this work?
-						cube test = *c;
 
-						// ok 
-						genfaceverts(test, i, v);
+						// TODO: Refactor/Resolve this!
+						genfaceverts(*c, i, v);
 
-						// ok 
 						bool hasxyz = (vertmask&0x04)!=0;
 						bool hasuv = (vertmask&0x40)!=0;
 						bool hasnorm = (vertmask&0x80)!=0;
 						
-						// ok 
 						if(hasxyz)
 						{
-							// ok 
 							ivec e1, e2, e3;
-							// ok 
+
 							n.cross((e1 = v[1]).sub(v[0]), (e2 = v[2]).sub(v[0]));   
 							
-							// ok 
 							if(n.iszero())
 							{
 								n.cross(e2, (e3 = v[3]).sub(v[0]));
 							}
 
-							// ok 
 							bias = -n.dot(ivec(v[0]).mul(size).add(ivec(co).mask(0xFFF).shl(3)));
 						}
 						else
 						{
-							// ok 
-							// TODO: Resolve
+							// TODO: Resolve This!
 							int vis = layerverts < 4 ? (vertmask&0x02 ? 2 : 1) : 3;
 							int order = vertmask&0x01 ? 1 : 0;
 							int k = 0;
 
-							// ok 
 							ivec vo = ivec(co).mask(0xFFF).shl(3);
 
-							// ok 
 							verts[k++].setxyz(v[order].mul(size).add(vo));
 							
-							// ok 
 							if(vis&1)
 							{
 								verts[k++].setxyz(v[order+1].mul(size).add(vo));
 							}
 
-							// ok 
 							verts[k++].setxyz(v[order+2].mul(size).add(vo));
 							
-							// ok 
 							if(vis&2)
 							{
 								verts[k++].setxyz(v[(order+3)&3].mul(size).add(vo));
 							}
 						}
 
-						// ok 
 						if(layerverts == 4)
 						{
-							// ok 
 							if(hasxyz && vertmask&0x01)
 							{
-								// ok 
 								ushort c1 = read_unsigned_short_from_buffer();
 								ushort r1 = read_unsigned_short_from_buffer();
+
 								ushort c2 = read_unsigned_short_from_buffer();
 								ushort r2 = read_unsigned_short_from_buffer();
 
-								// ok 
 								ivec xyz;
 								
 								xyz[vc] = c1; xyz[vr] = r1;
@@ -2078,76 +1990,63 @@ namespace cube2_map_importer {
 								xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
 								verts[3].setxyz(xyz);
 								
-								// ok 
 								hasxyz = false;
 							}
 
-							// ok 
 							if(hasuv && vertmask&0x02)
 							{
-								// ok 
 								int uvorder = (vertmask&0x30)>>4;
 								
-								// ok 
 								VertexInfo &v0 = verts[uvorder];
 								VertexInfo &v1 = verts[(uvorder+1)&3];
 								VertexInfo &v2 = verts[(uvorder+2)&3];
 								VertexInfo &v3 = verts[(uvorder+3)&3]; 
-								
-								// ok 
+
 								v0.u = read_unsigned_short_from_buffer();
 								v0.v = read_unsigned_short_from_buffer();
 								v2.u = read_unsigned_short_from_buffer();
 								v2.v = read_unsigned_short_from_buffer();
 
-								// ok 
-								v1.u = v0.u; v1.v = v2.v;
-								v3.u = v2.u; v3.v = v0.v;
+								v1.u = v0.u;
+								v1.v = v2.v;
+								v3.u = v2.u;
+								v3.v = v0.v;
 								
-								// ok 
+
 								if(surf.numverts&LAYER_DUP)
 								{
-									// ok 
 									VertexInfo &b0 = verts[4+uvorder];
 									VertexInfo &b1 = verts[4+((uvorder+1)&3)];
 									VertexInfo &b2 = verts[4+((uvorder+2)&3)];
 									VertexInfo &b3 = verts[4+((uvorder+3)&3)];
 
-									// ok 
 									b0.u = read_unsigned_short_from_buffer();
 									b0.v = read_unsigned_short_from_buffer();
 									b2.u = read_unsigned_short_from_buffer();
 									b2.v = read_unsigned_short_from_buffer();
-									
-									// ok 
+
 									b1.u = b0.u;
 									b1.v = b2.v;
 									b3.u = b2.u;
 									b3.v = b0.v;
 								}
 
-								// ok 
 								hasuv = false;
 							} 
 						}
 
-						// ok 
 						if(hasnorm && vertmask&0x08)
 						{
-							// ok 
 							ushort norm = read_unsigned_short_from_buffer();
 							
-							// ok 
 							for(int k=0; k<layerverts; k++)
 							{
 								verts[k].norm = norm;
 							}
 
-							// ok 
 							hasnorm = false;
 						}
 						
-						// ok 
 						if(hasxyz || hasuv || hasnorm)
 						{
 							for(int k=0; k<layerverts; k++)
@@ -2176,25 +2075,21 @@ namespace cube2_map_importer {
 							}
 						}
 
-						// ok 
 						if(surf.numverts&LAYER_DUP)
 						{
 							for(int k=0; k<layerverts; k++)
 							{
-								// ok 
 								VertexInfo &v = verts[k+layerverts];
 								VertexInfo &t = verts[k];
 									
 								v.setxyz(t.x, t.y, t.z);
 
-								// ok 
 								if(hasuv)
 								{
 									v.u = read_unsigned_short_from_buffer();
 									v.v = read_unsigned_short_from_buffer();
 								}
 
-								// ok 
 								v.norm = t.norm;
 							}
 						}
@@ -2203,19 +2098,9 @@ namespace cube2_map_importer {
 			}    
 		}
 
-		// ok 
 		if(haschildren)
 		{	
-			// This node has children, load them as well!
 			c->children = load_octree_node(co, size>>1, failed);
-		}
-		else
-		{
-			// TODO: Those should be NULL anyways because of the constructor, right?
-			for(std::size_t i=0; i<8; i++)
-			{
-				c->children[i] = NULL;
-			}
 		}
 	}
 
@@ -2225,9 +2110,6 @@ namespace cube2_map_importer {
 		// The 8 sub-cubes of this octree node.
 		// They might be NULL if this octree node is a leaf node.
 		std::array<std::shared_ptr<cube>, 8> octree_node;
-		
-		// Increase the total number of existing octree nodes.
-		all_octree_nodes++;
 
 		for(std::size_t i=0; i<8; i++)
 		{
@@ -2243,6 +2125,8 @@ namespace cube2_map_importer {
 				break;
 			}
 		}
+		// Increase the total number of existing octree nodes.
+		all_octree_nodes++;
 
 		return octree_node;
 	}
