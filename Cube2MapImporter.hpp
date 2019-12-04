@@ -139,7 +139,7 @@ namespace cube2_map_importer {
 			void dump_decompressed_data_to_file(const std::string& file_name);
 			
 			// 
-			void set_surfaces(cube &c, const surfaceinfo *surfs, const VertexInfo *verts, int numverts);
+			void set_surfaces(cube &c, const surfaceinfo *surfs, std::vector<VertexInfo>& verts, int numverts);
 
 
 		protected:

@@ -1406,15 +1406,17 @@ namespace cube2_map_importer {
 		{
 			if(c.extension)
 			{
+				// Copy surface information.
 				memcpy(new_extension->surfaces, c.extension->surfaces, sizeof(c.extension->surfaces));
-
-				// TODO: Refactor and remove this!
-				memcpy(new_extension->verts(), c.extension->verts(), c.extension->maxverts*sizeof(VertexInfo));
+				
+				// Copy vertex information.
+				// TODO: Does this work correctly?
+				new_extension->vertices = c.extension->vertices;
 			}
 			else
 			{
 				// Reset surface memory.
-				memset(new_extension->surfaces, 0, sizeof(new_extension->surfaces));
+				new_extension->reset_surfaces();
 			}
 		}
 		
@@ -1425,25 +1427,26 @@ namespace cube2_map_importer {
 	}
 
 
-	void Cube2MapImporter::set_surfaces(cube &c, const surfaceinfo *surfs, const VertexInfo *verts, int numverts)
+	void Cube2MapImporter::set_surfaces(cube &c, const surfaceinfo *surfs, std::vector<VertexInfo>& verts, int numverts)
 	{
 		if(!c.extension || c.extension->maxverts < numverts)
 		{
 			new_cube_extension(c, numverts, false);
 		}
 
+		// Copy surface information
 		memcpy(c.extension->surfaces, surfs, sizeof(c.extension->surfaces));
-		memcpy(c.extension->verts(), verts, numverts*sizeof(VertexInfo));
+
+		// Copy vertex information
+		c.extension->vertices = verts;
 	}
 
 
 	void Cube2MapImporter::convert_old_surfaces(std::shared_ptr<cube> &c, const ivec &co, int size, surfacecompat *srcsurfs, int hassurfs, normalscompat *normals, int hasnorms, mergecompat *merges, int hasmerges)
 	{
-		// ok 
 		surfaceinfo dstsurfs[6];
-		
-		// ok 
-		VertexInfo verts[6*2*MAXFACEVERTS];
+
+		std::vector<VertexInfo> verts(6*2*MAXFACEVERTS);
 		
 		// ok 
 		int totalverts = 0;
@@ -1462,7 +1465,10 @@ namespace cube2_map_importer {
 				
 				// ok 
 				VertexInfo *curverts = NULL;
-				surfacecompat *src = NULL, *blend = NULL;
+				
+				surfacecompat *src = NULL;
+				
+				surfacecompat *blend = NULL;
 				
 				// ok 
 				int numverts = 0;
@@ -1565,7 +1571,8 @@ namespace cube2_map_importer {
 						pos[3] = vis&2 ? v[(order+3)&3].mul(size).add(vo) : pos[0];
 					}
 
-					curverts = verts + totalverts;
+					// TODO: Does this work?
+					curverts = &verts[0] + totalverts;
 
 					for(std::size_t k=0; k<4; k++)
 					{
@@ -1631,32 +1638,40 @@ namespace cube2_map_importer {
 	{
 		bool haschildren = false;
 		
+		// TODO: What does "sav" stand for?
 		int octsav = read_one_byte_from_buffer();
 
 		switch(octsav&0x7)
 		{
 			case OCTSAV_CHILDREN:
 			{
+				// Load the children octree nodes!
 				c->children = load_octree_node(co, size>>1, failed);
 				return;
 			}
 			case OCTSAV_LODCUBE:
 			{
+				// This octree node does have children!
 				haschildren = true;
 				break;
 			}
 			case OCTSAV_EMPTY:
 			{
-				c->faces[0] = c->faces[1] = c->faces[2] = F_EMPTY;
+				c->faces[0] = F_EMPTY;
+				c->faces[1] = F_EMPTY;
+				c->faces[2] = F_EMPTY;
 				break;
 			}
 			case OCTSAV_SOLID:
 			{
-				c->faces[0] = c->faces[1] = c->faces[2] = F_SOLID;
+				c->faces[0] = F_SOLID;
+				c->faces[1] = F_SOLID;
+				c->faces[2] = F_SOLID;
 				break;
 			}
 			case OCTSAV_NORMAL:
 			{
+				// 
 				read_memory_into_structure(&c->edges[0], 12, sizeof(c->edges));
 				break;
 			}
@@ -1703,7 +1718,7 @@ namespace cube2_map_importer {
 						MAT_GAMECLIP, MAT_DEATH
 					};
 
-					if(size_t(mat) < sizeof(matconv)/sizeof(matconv[0]))
+					if(std::size_t(mat) < sizeof(matconv)/sizeof(matconv[0]))
 					{
 						c->material = matconv[mat];
 					}
@@ -1734,6 +1749,7 @@ namespace cube2_map_importer {
 				{
 					if(i >= 6 || mask & (1 << i))
 					{
+						// 
 						read_memory_into_structure(&surfaces[i], sizeof(surfacecompat), sizeof(surfacecompat));
 
 						if(map_header.version < 10)
@@ -1768,6 +1784,7 @@ namespace cube2_map_importer {
 							{
 								hasnorms |= 1<<i;
 
+								// 
 								read_memory_into_structure(&normals[i], sizeof(normalscompat), sizeof(normalscompat));
 							}
 
@@ -1827,6 +1844,7 @@ namespace cube2_map_importer {
 								{
 									mergecompat *m = &merges[i];
 									
+									// 
 									read_memory_into_structure(&m, sizeof(mergecompat), sizeof(mergecompat));
 									
 									if(map_header.version <= 25)
@@ -1879,10 +1897,14 @@ namespace cube2_map_importer {
 				int totalverts = read_one_byte_from_buffer();
 				int offset = 0;
 				
+				// 
 				new_cube_extension(*c, totalverts, false);
 
-				memset(c->extension->surfaces, 0, sizeof(c->extension->surfaces));
-				memset(c->extension->verts(), 0, totalverts*sizeof(VertexInfo));
+				// 
+				c->extension->reset_surfaces();
+
+				// 
+				//c->extension->reset_vertices();
 
 				for(std::size_t i=0; i<6; i++)
 				{
@@ -1890,6 +1912,7 @@ namespace cube2_map_importer {
 					{
 						surfaceinfo &surf = c->extension->surfaces[i];
 						
+						// 
 						read_memory_into_structure(&surf, sizeof(surfacecompat), sizeof(surfacecompat));
 
 						int vertmask = surf.verts;
@@ -1903,9 +1926,8 @@ namespace cube2_map_importer {
 						
 						surf.verts = offset;
 						
-						// ?? What is this pointer arithmetic doing?
-						// Why use ->verts() to get the address??
-						VertexInfo *verts = c->extension->verts() + offset;
+						// TODO: Why is this out of the vectors range?
+						VertexInfo *verts = &c->extension->vertices[offset];
 
 						offset += numverts;
 
@@ -1947,13 +1969,15 @@ namespace cube2_map_importer {
 
 							ivec vo = ivec(co).mask(0xFFF).shl(3);
 
+							// TODO: Which address does this point to?
 							verts[k++].setxyz(v[order].mul(size).add(vo));
 							
 							if(vis&1)
 							{
 								verts[k++].setxyz(v[order+1].mul(size).add(vo));
 							}
-
+							
+							// TODO: Which address does this point to?
 							verts[k++].setxyz(v[order+2].mul(size).add(vo));
 							
 							if(vis&2)
@@ -1968,7 +1992,6 @@ namespace cube2_map_importer {
 							{
 								ushort c1 = read_unsigned_short_from_buffer();
 								ushort r1 = read_unsigned_short_from_buffer();
-
 								ushort c2 = read_unsigned_short_from_buffer();
 								ushort r2 = read_unsigned_short_from_buffer();
 
@@ -1976,18 +1999,22 @@ namespace cube2_map_importer {
 								
 								xyz[vc] = c1; xyz[vr] = r1;
 								xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
+								// TODO: Which address does this point to?
 								verts[0].setxyz(xyz);
 
 								xyz[vc] = c1; xyz[vr] = r2;
 								xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
+								// TODO: Which address does this point to?
 								verts[1].setxyz(xyz);
 								
 								xyz[vc] = c2; xyz[vr] = r2;
 								xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
+								// TODO: Which address does this point to?
 								verts[2].setxyz(xyz);
 								
 								xyz[vc] = c2; xyz[vr] = r1;
 								xyz[dim] = -(bias + n[vc]*xyz[vc] + n[vr]*xyz[vr])/n[dim];
+								// TODO: Which address does this point to?
 								verts[3].setxyz(xyz);
 								
 								hasxyz = false;
@@ -1997,6 +2024,7 @@ namespace cube2_map_importer {
 							{
 								int uvorder = (vertmask&0x30)>>4;
 								
+								// TODO: Which address does this point to?
 								VertexInfo &v0 = verts[uvorder];
 								VertexInfo &v1 = verts[(uvorder+1)&3];
 								VertexInfo &v2 = verts[(uvorder+2)&3];
@@ -2012,9 +2040,9 @@ namespace cube2_map_importer {
 								v3.u = v2.u;
 								v3.v = v0.v;
 								
-
 								if(surf.numverts&LAYER_DUP)
 								{
+									// TODO: Which address does this point to?
 									VertexInfo &b0 = verts[4+uvorder];
 									VertexInfo &b1 = verts[4+((uvorder+1)&3)];
 									VertexInfo &b2 = verts[4+((uvorder+2)&3)];
@@ -2039,6 +2067,7 @@ namespace cube2_map_importer {
 						{
 							ushort norm = read_unsigned_short_from_buffer();
 							
+							// TODO: Which address does this point to?
 							for(int k=0; k<layerverts; k++)
 							{
 								verts[k].norm = norm;
@@ -2099,7 +2128,8 @@ namespace cube2_map_importer {
 		}
 
 		if(haschildren)
-		{	
+		{
+			// Time to load the children of this octree node!
 			c->children = load_octree_node(co, size>>1, failed);
 		}
 	}
@@ -2107,6 +2137,8 @@ namespace cube2_map_importer {
 
 	std::array<std::shared_ptr<cube>, 8> Cube2MapImporter::load_octree_node(const ivec &co, int size, bool &failed)
 	{
+		cout << "load_octree_node" << endl;
+
 		// The 8 sub-cubes of this octree node.
 		// They might be NULL if this octree node is a leaf node.
 		std::array<std::shared_ptr<cube>, 8> octree_node;
@@ -2116,15 +2148,22 @@ namespace cube2_map_importer {
 			// Create a new shared pointer for every sub-cube.
 			octree_node[i] = std::make_shared<cube>();
 
+			cout << "std::make_shared<cube>()" << endl;
+
 			// Fill the sub cubes with data.
 			fill_octree_node_with_data(octree_node[i], ivec(i, co.x, co.y, co.z, size), size, failed);
 
 			// TODO: Refactor this!
+			// TODO: Implement abort_loading() method!
 			if(failed)
 			{
+				cout << "load_octree_node FAILED!" << endl;
 				break;
 			}
 		}
+
+		cout << "all_octree_nodes++" << endl;
+
 		// Increase the total number of existing octree nodes.
 		all_octree_nodes++;
 

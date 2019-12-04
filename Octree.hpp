@@ -309,7 +309,6 @@ namespace cube2_map_importer {
 	// 
 	struct CubeExtension
 	{
-		// Copy constructor.
 		CubeExtension(std::shared_ptr<CubeExtension>& old_cube_extension, int max_vertices)
 		{
 			if(old_cube_extension)
@@ -326,13 +325,29 @@ namespace cube2_map_importer {
 			}
 
 			maxverts = max_vertices;
+
+			// Clear buffers
+			vertices.clear();
+			vertex_array.clear();
+			entities.clear();
+
+			// TODO: Does this even work?
+			vertices.resize(maxverts);
 		}
 
-		// 
-		VertexInfo *verts()
+		void reset_surfaces()
 		{
-			return (VertexInfo *)(this+1);
+			std::memset(surfaces, 0, sizeof(surfaces));
 		}
+
+		void reset_vertices()
+		{
+			vertices.clear();
+			vertices.reserve(maxverts);
+		}
+
+		// TODO: Is this the solution ?
+		std::vector<VertexInfo> vertices;
 
 		// vertex array for children, or NULL.
 		std::vector<vtxarray> vertex_array;
@@ -383,6 +398,7 @@ namespace cube2_map_importer {
 
 			material = mat;
 		}
+
 
 
 		// extended info of the cube.
