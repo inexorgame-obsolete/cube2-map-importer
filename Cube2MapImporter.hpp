@@ -142,6 +142,9 @@ namespace cube2_map_importer {
 			void set_surfaces(cube &c, const surfaceinfo *surfs, std::vector<VertexInfo>& verts, int numverts);
 			
 			// 
+			bool subdividecube(cube &c, bool fullcheck, bool brighten);
+
+			// 
 			void freeoctaentities(std::shared_ptr<cube> &c);
 
 			// 

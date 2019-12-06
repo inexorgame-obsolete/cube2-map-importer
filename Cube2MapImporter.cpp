@@ -2273,6 +2273,112 @@ namespace cube2_map_importer {
 	}
 
 
+	bool Cube2MapImporter::subdividecube(cube &c, bool fullcheck, bool brighten)
+	{
+		if(c.children) return true;
+
+		if(c.ext) memset(c.ext->surfaces, 0, sizeof(c.ext->surfaces));
+
+		if(isempty(c) || isentirelysolid(c))
+		{
+			c.children = newcubes(isempty(c) ? F_EMPTY : F_SOLID, c.material);
+			loopi(8)
+			{
+				loopl(6) c.children[i].texture[l] = c.texture[l];
+				if(brighten && !isempty(c)) brightencube(c.children[i]);
+			}
+			return true;
+		}
+
+		cube *ch = c.children = newcubes(F_SOLID, c.material);
+		bool perfect = true;
+		ivec v[8];
+
+		loopi(8)
+		{
+			getcubevector(c, i, v[i]);
+			v[i].mul(2);
+		}
+
+		loopj(6)
+		{
+			int d = dimension(j);
+			int z = dimcoord(j);
+
+			const ivec &v00 = v[octaindex(d, 0, 0, z)],
+					   &v10 = v[octaindex(d, 1, 0, z)],
+					   &v01 = v[octaindex(d, 0, 1, z)],
+					   &v11 = v[octaindex(d, 1, 1, z)];
+
+			int e[3][3];
+
+			// corners   
+			e[0][0] = v00[d];
+			e[0][2] = v01[d];
+			e[2][0] = v10[d];
+			e[2][2] = v11[d];
+
+			// edges
+			e[0][1] = midedge(v00, v01, C[d], d, perfect); 
+			e[1][0] = midedge(v00, v10, R[d], d, perfect);
+			e[1][2] = midedge(v11, v01, R[d], d, perfect);
+			e[2][1] = midedge(v11, v10, C[d], d, perfect); 
+
+			// center
+			bool p1 = perfect, p2 = perfect;
+			int c1 = midedge(v00, v11, R[d], d, p1);
+			int c2 = midedge(v01, v10, R[d], d, p2);
+
+			if(z ? c1 > c2 : c1 < c2)
+			{
+				e[1][1] = c1;
+				perfect = p1 && (c1 == c2 || crosscenter(v00, v11, C[d], R[d]));
+			}
+			else
+			{
+				e[1][1] = c2;
+				perfect = p2 && (c1 == c2 || crosscenter(v01, v10, C[d], R[d]));
+			}    
+
+			loopi(8)
+			{
+				ch[i].texture[j] = c.texture[j];
+				int rd = (i>>R[d])&1, cd = (i>>C[d])&1, dd = (i>>D[d])&1;
+				edgeset(cubeedge(ch[i], d, 0, 0), z, clamp(e[rd][cd] - dd*8, 0, 8));
+				edgeset(cubeedge(ch[i], d, 1, 0), z, clamp(e[1+rd][cd] - dd*8, 0, 8));
+				edgeset(cubeedge(ch[i], d, 0, 1), z, clamp(e[rd][1+cd] - dd*8, 0, 8));
+				edgeset(cubeedge(ch[i], d, 1, 1), z, clamp(e[1+rd][1+cd] - dd*8, 0, 8));
+			}
+		}
+
+		validatec(ch);
+
+		if(fullcheck)
+		{
+			loopi(8)
+			{
+				if(!isvalidcube(ch[i])) // not so good...
+				{
+					emptyfaces(ch[i]);
+					perfect=false;
+				}
+			}
+		}
+
+		if(brighten)
+		{
+			loopi(8)
+			{
+				if(!isempty(ch[i]))
+				{
+					brightencube(ch[i]);
+				}
+			}
+		}
+		
+		return perfect;
+	}
+
 	void Cube2MapImporter::validatec(std::shared_ptr<cube> c, int size)
 	{
 		loopi(8)
