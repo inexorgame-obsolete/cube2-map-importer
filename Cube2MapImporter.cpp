@@ -2211,7 +2211,7 @@ namespace cube2_map_importer {
 			{
 				if(size<=1)
 				{
-					solidfaces(c->children[i]);
+					solidfaces(*c->children[i]);
 
 					discardchildren(c->children[i], true);
 				}
@@ -2240,7 +2240,7 @@ namespace cube2_map_importer {
 					
 					if(e0 == e1 || ((e1+0x07070707U)|(e1-e0))&0xF0F0F0F0U)
 					{
-						emptyfaces(c->children[i]);
+						emptyfaces(*c->children[i]);
 						break;
 					}
 				}
