@@ -397,13 +397,16 @@ namespace cube2_map_importer {
 			}
 
 			material = mat;
+
+			haschildren = false;
 		}
 
 
-
-		// extended info of the cube.
+		// Extended info of the cube.
 		std::shared_ptr<CubeExtension> extension;
-
+	
+		// Does this cube have children octree nodes?
+		bool haschildren;
 
 		// TODO: Remove unions?
 		union

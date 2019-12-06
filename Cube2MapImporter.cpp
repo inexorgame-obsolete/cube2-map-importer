@@ -1646,6 +1646,7 @@ namespace cube2_map_importer {
 			case OCTSAV_CHILDREN:
 			{
 				// Load the children octree nodes!
+				c->haschildren = true;
 				c->children = load_octree_node(co, size>>1, failed);
 				return;
 			}
@@ -2129,6 +2130,8 @@ namespace cube2_map_importer {
 
 		if(haschildren)
 		{
+			c->haschildren = true;
+
 			// Time to load the children of this octree node!
 			c->children = load_octree_node(co, size>>1, failed);
 		}
@@ -2180,6 +2183,9 @@ namespace cube2_map_importer {
 		// since otherwise the function will return std::nullptr!
 		octree_world_root = std::make_shared<cube>();
 
+		// 
+		octree_world_root->haschildren = true;
+
 		// Load the root of the octree game world.
 		// TODO: Refactor function call!
 		octree_world_root->children = load_octree_node(ivec(0, 0, 0), map_header.worldsize >> 1, loading_octree_failed);
@@ -2205,11 +2211,11 @@ namespace cube2_map_importer {
 
 	void Cube2MapImporter::discardchildren(std::shared_ptr<cube> &c, bool fixtex, int depth)
 	{
-		c.material = MAT_AIR;
-		c.visible = 0;
-		c.merged = 0;
+		c->material = MAT_AIR;
+		c->visible = 0;
+		c->merged = 0;
 
-		if(c.ext)
+		if(c->extension)
 		{
 			if(c.ext->va) destroyva(c.ext->va);
 			c.ext->va = NULL;
@@ -2218,7 +2224,7 @@ namespace cube2_map_importer {
 			freecubeext(c);
 		}
 
-		if(c.children)
+		if(c->haschildren)
 		{
 			uint filled = F_EMPTY;
 			loopi(8) 
