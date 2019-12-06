@@ -2211,8 +2211,9 @@ namespace cube2_map_importer {
 			{
 				if(size<=1)
 				{
-					solidfaces(c[i]);
-					discardchildren(c[i], true);
+					solidfaces(c->children[i]);
+
+					discardchildren(c->children[i], true);
 				}
 				else
 				{
@@ -2221,21 +2222,25 @@ namespace cube2_map_importer {
 			}
 			else if(size > 0x1000)
 			{
-				subdividecube(c[i], true, false);
+				subdividecube(c->children[i], true, false);
 
-				validatec(c[i].children, size>>1);
+				// TODO: Does this make sense?
+				loopj(8)
+				{
+					validatec(c->children[j], size>>1);
+				}
 			}
 			else
 			{
 				loopj(3)
 				{
-					uint f = c[i].faces[j];
+					uint f = c->children[i]->faces[j];
 					uint e0 = f&0x0F0F0F0FU;
 					uint e1 = (f>>4)&0x0F0F0F0FU;
 					
 					if(e0 == e1 || ((e1+0x07070707U)|(e1-e0))&0xF0F0F0F0U)
 					{
-						emptyfaces(c[i]);
+						emptyfaces(c->children[i]);
 						break;
 					}
 				}
