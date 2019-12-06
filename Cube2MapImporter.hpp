@@ -142,7 +142,7 @@ namespace cube2_map_importer {
 			void set_surfaces(cube &c, const surfaceinfo *surfs, std::vector<VertexInfo>& verts, int numverts);
 			
 			// 
-			void discardchildren(cube &c, bool fixtex, int depth)
+			void discardchildren(std::shared_ptr<cube> &c, bool fixtex, int depth)
 
 			// 
 			void validatec(std::shared_ptr<cube> c, int size);

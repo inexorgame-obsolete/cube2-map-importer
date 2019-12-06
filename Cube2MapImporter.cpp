@@ -2203,11 +2203,12 @@ namespace cube2_map_importer {
 	#define emptyfaces(c) setfaces(c, F_EMPTY)
 
 
-	void Cube2MapImporter::discardchildren(cube &c, bool fixtex, int depth)
+	void Cube2MapImporter::discardchildren(std::shared_ptr<cube> &c, bool fixtex, int depth)
 	{
 		c.material = MAT_AIR;
 		c.visible = 0;
 		c.merged = 0;
+
 		if(c.ext)
 		{
 			if(c.ext->va) destroyva(c.ext->va);
@@ -2216,6 +2217,7 @@ namespace cube2_map_importer {
 			freeoctaentities(c);
 			freecubeext(c);
 		}
+
 		if(c.children)
 		{
 			uint filled = F_EMPTY;
@@ -2229,7 +2231,9 @@ namespace cube2_map_importer {
 				loopi(6) c.texture[i] = getmippedtexture(c, i);
 				if(depth > 0 && filled != F_EMPTY) c.faces[0] = F_SOLID;
 			}
+
 			DELETEA(c.children);
+
 			allocnodes--;
 		}
 	}
