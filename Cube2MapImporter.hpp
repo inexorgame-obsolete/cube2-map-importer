@@ -140,18 +140,6 @@ namespace cube2_map_importer {
 			
 			// 
 			void set_surfaces(cube &c, const surfaceinfo *surfs, std::vector<VertexInfo>& verts, int numverts);
-			
-			// 
-			bool subdividecube(std::shared_ptr<cube> &c, bool fullcheck, bool brighten);
-
-			// 
-			void freeoctaentities(std::shared_ptr<cube> &c);
-
-			// 
-			void discardchildren(std::shared_ptr<cube> &c, bool fixtex, int depth);
-
-			// 
-			void validatec(std::shared_ptr<cube> c, int size);
 
 
 		protected:
