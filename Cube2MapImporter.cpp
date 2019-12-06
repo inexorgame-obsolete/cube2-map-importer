@@ -2217,9 +2217,9 @@ namespace cube2_map_importer {
 
 		if(c->extension)
 		{
-			if(c.ext->va) destroyva(c.ext->va);
-			c.ext->va = NULL;
-			c.ext->tjoints = -1;
+			c->extension->vertex_array.clear();
+			c->extension->tjoints = -1;
+
 			freeoctaentities(c);
 			freecubeext(c);
 		}
@@ -2229,18 +2229,26 @@ namespace cube2_map_importer {
 			uint filled = F_EMPTY;
 			loopi(8) 
 			{
-				discardchildren(c.children[i], fixtex, depth+1);
-				filled |= c.children[i].faces[0];
+				discardchildren(c->children[i], fixtex, depth+1);
+				filled |= c->children[i]->faces[0];
 			}
 			if(fixtex) 
 			{
-				loopi(6) c.texture[i] = getmippedtexture(c, i);
-				if(depth > 0 && filled != F_EMPTY) c.faces[0] = F_SOLID;
+				loopi(6)
+				{
+					c->texture[i] = getmippedtexture(c, i);
+				}
+
+				if(depth > 0 && filled != F_EMPTY)
+				{
+					c->faces[0] = F_SOLID;
+				}
 			}
 
-			DELETEA(c.children);
+			// Remove children nodes.
+			c->discard_children();
 
-			allocnodes--;
+			all_octree_nodes--;
 		}
 	}
 
@@ -2249,7 +2257,7 @@ namespace cube2_map_importer {
 	{
 		loopi(8)
 		{
-			if(c[i].children)
+			if(NULL != c->children[i])
 			{
 				if(size<=1)
 				{
@@ -2259,7 +2267,7 @@ namespace cube2_map_importer {
 				}
 				else
 				{
-					validatec(c[i].children, size>>1);
+					validatec(c->children[i], size>>1);
 				}
 			}
 			else if(size > 0x1000)
