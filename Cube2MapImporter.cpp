@@ -2203,10 +2203,14 @@ namespace cube2_map_importer {
 		outfile.close();
 	}
 
+	
+	
 	// TODO: Remove this!
 	#define setfaces(c, face) { (c).faces[0] = (c).faces[1] = (c).faces[2] = face; }
 	#define solidfaces(c) setfaces(c, F_SOLID)
 	#define emptyfaces(c) setfaces(c, F_EMPTY)
+
+
 
 
 	void Cube2MapImporter::discardchildren(std::shared_ptr<cube> &c, bool fixtex, int depth)
@@ -2236,7 +2240,8 @@ namespace cube2_map_importer {
 			{
 				loopi(6)
 				{
-					c->texture[i] = getmippedtexture(c, i);
+					// TODO: Implement getmippedtexture(c, i);
+					c->texture[i] = DEFAULT_GEOM;
 				}
 
 				if(depth > 0 && filled != F_EMPTY)
