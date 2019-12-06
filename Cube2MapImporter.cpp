@@ -2203,7 +2203,7 @@ namespace cube2_map_importer {
 	#define emptyfaces(c) setfaces(c, F_EMPTY)
 
 
-	void Cube2MapImporter::validatec(cube *c, int size)
+	void Cube2MapImporter::validatec(std::shared_ptr<cube> c, int size)
 	{
 		loopi(8)
 		{
@@ -2214,18 +2214,25 @@ namespace cube2_map_importer {
 					solidfaces(c[i]);
 					discardchildren(c[i], true);
 				}
-				else validatec(c[i].children, size>>1);
+				else
+				{
+					validatec(c[i].children, size>>1);
+				}
 			}
 			else if(size > 0x1000)
 			{
 				subdividecube(c[i], true, false);
+
 				validatec(c[i].children, size>>1);
 			}
 			else
 			{
 				loopj(3)
 				{
-					uint f = c[i].faces[j], e0 = f&0x0F0F0F0FU, e1 = (f>>4)&0x0F0F0F0FU;
+					uint f = c[i].faces[j];
+					uint e0 = f&0x0F0F0F0FU;
+					uint e1 = (f>>4)&0x0F0F0F0FU;
+					
 					if(e0 == e1 || ((e1+0x07070707U)|(e1-e0))&0xF0F0F0F0U)
 					{
 						emptyfaces(c[i]);
