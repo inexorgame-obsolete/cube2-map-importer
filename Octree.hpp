@@ -402,6 +402,15 @@ namespace cube2_map_importer {
 		}
 
 
+		void discard_children()
+		{
+			for(std::size_t i=0; i<8; i++)
+			{
+				children[i] = NULL;
+			}
+		}
+
+
 		// Extended info of the cube.
 		std::shared_ptr<CubeExtension> extension;
 	
