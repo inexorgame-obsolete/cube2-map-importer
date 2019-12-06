@@ -141,6 +141,9 @@ namespace cube2_map_importer {
 			// 
 			void set_surfaces(cube &c, const surfaceinfo *surfs, std::vector<VertexInfo>& verts, int numverts);
 
+			// 
+			void validatec(cube *c, int size);
+
 
 		protected:
 

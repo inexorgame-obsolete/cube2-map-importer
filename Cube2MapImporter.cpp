@@ -2197,6 +2197,45 @@ namespace cube2_map_importer {
 		outfile.close();
 	}
 
+	// TODO: Remove this!
+	#define setfaces(c, face) { (c).faces[0] = (c).faces[1] = (c).faces[2] = face; }
+	#define solidfaces(c) setfaces(c, F_SOLID)
+	#define emptyfaces(c) setfaces(c, F_EMPTY)
+
+
+	void Cube2MapImporter::validatec(cube *c, int size)
+	{
+		loopi(8)
+		{
+			if(c[i].children)
+			{
+				if(size<=1)
+				{
+					solidfaces(c[i]);
+					discardchildren(c[i], true);
+				}
+				else validatec(c[i].children, size>>1);
+			}
+			else if(size > 0x1000)
+			{
+				subdividecube(c[i], true, false);
+				validatec(c[i].children, size>>1);
+			}
+			else
+			{
+				loopj(3)
+				{
+					uint f = c[i].faces[j], e0 = f&0x0F0F0F0FU, e1 = (f>>4)&0x0F0F0F0FU;
+					if(e0 == e1 || ((e1+0x07070707U)|(e1-e0))&0xF0F0F0F0U)
+					{
+						emptyfaces(c[i]);
+						break;
+					}
+				}
+			}
+		}
+	}
+
 
 	bool Cube2MapImporter::parse_decompressed_data()
 	{
@@ -2245,8 +2284,9 @@ namespace cube2_map_importer {
 		{
 			return false;
 		}
+		
 
-		// TODO: Validate octree!
+		validatec(worldroot, hdr.worldsize>>1);
 
 		return true;
 	}
