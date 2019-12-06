@@ -2211,6 +2211,22 @@ namespace cube2_map_importer {
 	#define emptyfaces(c) setfaces(c, F_EMPTY)
 
 
+	void Cube2MapImporter::freeoctaentities(std::shared_ptr<cube> &c)
+	{
+		if(!c->extension) return;
+
+		// TODO: Implement with the entity system.
+		/*
+		if(entities::getents().length())
+		{
+			while(c.ext->ents && !c.ext->ents->mapmodels.empty()) removeentity(c.ext->ents->mapmodels.pop());
+			while(c.ext->ents && !c.ext->ents->other.empty())     removeentity(c.ext->ents->other.pop());
+		}
+		*/
+
+		// Clear entities in cube.
+		c->extension->entities.clear();
+	}
 
 
 	void Cube2MapImporter::discardchildren(std::shared_ptr<cube> &c, bool fixtex, int depth)
@@ -2225,7 +2241,6 @@ namespace cube2_map_importer {
 			c->extension->tjoints = -1;
 
 			freeoctaentities(c);
-			freecubeext(c);
 		}
 
 		if(c->haschildren)
