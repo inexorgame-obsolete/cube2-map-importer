@@ -5,12 +5,10 @@ using namespace std;
 #include "Cube2MapImporter.hpp"
 
 
-// TODO: Make sure this program runs on x64 bit!
-// TODO: There is a memory leak somewhere! Maybe we shouldn't allocate that much memory?
 // TODO: Load unzipped files as well (Do not unzip in the progress)?
-// TODO: Join threads.
-// TODO: multithreading!
 // TODO: Display CRC32 checksum!
+// TODO: multithreading!
+// TODO: Join threads.
 
 
 // The main program start.
@@ -26,9 +24,6 @@ int main(int argc, char* argv[])
 
 	// Initialise the Cube2 map importer.
 	std::vector<std::shared_ptr<Cube2Map>> maps(number_of_files);
-	
-	// The threads of the main program.
-	//std::vector<std::thread> map_loading_threads(number_of_files);
 
 	cout << "----------------------------------------------------------------------------" << endl;
 
