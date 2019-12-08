@@ -267,12 +267,11 @@ namespace cube2_map_importer {
 	{
 		cout << "Map variables: " << cube2map->header.number_of_map_variables << endl;
 
-		// Check if we read something wrong!
 		if(cube2map->header.number_of_map_variables > 0)
 		{
 			cout << "----------------------------------------------------------------------------" << endl;
 			
-			// Loop through all variables and load them.
+			// Loop through all variables and read them.
 			for(int i=0; i<cube2map->header.number_of_map_variables; i++)
 			{
 				// The new variable which is being read.
@@ -284,10 +283,10 @@ namespace cube2_map_importer {
 				// The length of the string.
 				int var_length = read_short_from_buffer();
 
-				// Read the name out of the buffer.
+				// Read the map variable's name.
 				new_map_variable.name = read_slice_from_buffer_as_string(var_length);
 
-				// Print out which map variable is being read.
+				// Print the name of the map variable.
 				cout << new_map_variable.name << ": ";
 
 				// Parse the map variable data depending on the memory type.
@@ -298,19 +297,16 @@ namespace cube2_map_importer {
 						// Set this as an integer variable.
 						new_map_variable.type = ID_VAR;
 
-						// Read integer from buffer.
 						new_map_variable.value_int = read_int_from_buffer();
 
-						// Check if this is the name of the variable is
-						// one of the list mentioned above. If so, calculate
-						// the rgb values from the integer values.
-						// Example: ? = rgb(244,2,234);
+						// Check if this variable is a color variable (e.g. skylight).
+						// If so, convert the integer bytes to rgb() values.
+						// Those rgb values are easier to read and understand.
 						if(is_integer_map_variable_a_color_value(new_map_variable.name))
 						{
-							// This is a color!
+							// This is a color variable.
 							new_map_variable.type = ID_COLORVAR;
 
-							// TODO: Is there a better way to do this?
 							convert_integer_value_to_rgb_code(new_map_variable.value_int, new_map_variable.value_color);
 							
 							// Print color as RGB value.
@@ -318,6 +314,8 @@ namespace cube2_map_importer {
 						}
 						else
 						{
+							// This is not a color variable.
+							// Instead this is just a normal integer value.
 							cout << new_map_variable.value_int << endl;
 						}
 
@@ -328,10 +326,8 @@ namespace cube2_map_importer {
 						// Set this as a float variable.
 						new_map_variable.type = ID_FVAR;
 
-						// Read float from buffer.
 						new_map_variable.value_float = read_float_from_buffer();
-								
-						// Print the value of the data.
+						
 						cout << new_map_variable.value_float << endl;
 						break;
 					}
@@ -346,36 +342,35 @@ namespace cube2_map_importer {
 						// Copy string value.
 						new_map_variable.value_string = var_str_value;
 							
-						// This is the maptitle!
-						// Since the map title can be formatted with Cube2
-						// console coloring bytes, we have to remove them.
+						// Check if this is the maptitle!
 						if(0 == new_map_variable.name.compare("maptitle"))
 						{
 							// Store the name of the map.
 							cube2map->map_title = new_map_variable.value_string;
 
-							// Remove Cube2 coloring bytes from map title.
-							cube2map->clean_map_title = remove_cube2_texture_coloring_bytes(cube2map->map_title);
+							// Remove Cube2 console text colorisation from map title.
+							cube2map->clean_map_title = remove_cube2_text_colorisation(cube2map->map_title);
 
 							// Print cleaned map title.
 							cout << cube2map->clean_map_title.c_str() << endl;
 
+							// Check for Misan.
 							if(cube2map->clean_map_title.find("Misan") != string::npos)
 							{
 								cout << "Misan found!" << endl;
 							}
-
 						}
 						else
 						{
-							// Print the value of the data.
+							// No, this map variable is not the map title.
+							// Print the value of the map variable to the console.
 							cout << new_map_variable.value_string.c_str() << endl;
 						}
 						break;
 					}
 				}
 					
-				// TODO: Do not use push_back, but allocate memory ahead of time.
+				// TODO: Do not use push_back, but allocate memory ahead of time!
 
 				// We are done parsing the data.
 				// Now add it to the vector of map variables.
@@ -386,7 +381,7 @@ namespace cube2_map_importer {
 			if(cube2map->header.number_of_map_variables > MAX_NUMVARS)
 			{
 				// Something went wrong when parsing the number of variables in the map.
-				cout << "Warning: more than " << MAX_NUMVARS << " to read (" << cube2map->header.number_of_map_variables << ")!" << endl;
+				cout << "Warning: more than " << MAX_NUMVARS << " map variables to read (" << cube2map->header.number_of_map_variables << ")!" << endl;
 				cout << "Cube2: Sauerbraten would have aborted reading after " << MAX_NUMVARS << " variables!" << endl;
 			}
 			
