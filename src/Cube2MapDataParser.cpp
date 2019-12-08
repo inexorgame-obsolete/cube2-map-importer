@@ -522,30 +522,29 @@ namespace cube2_map_importer {
 		// This may change for other games?
 		int extra_entity_info_size = 0;
 
-		// Allocate memory.
+		// Allocate memory ahead of time.
 		cube2map->extra_entity_info.resize(extra_entity_info_size);
 
 		// How many entities to load.
+		// Cube2: Sauerbraten limits the maximum amounts of entites to 10000
 		int number_of_entities_to_load = std::min(cube2map->header.number_of_entities, MAXENTS);
 
 		cout << "Entities: " << number_of_entities_to_load << "." << endl;
 
 		if(number_of_entities_to_load > 0)
 		{
-			// Load all entites from the map.
 			for(int i=0; i<number_of_entities_to_load; i++)
 			{
-				// A new entity to load.
 				EntityAdditionalData new_entity;
 
 				// Fill out entity structure.
 				read_memory_into_structure(&new_entity, sizeof(Entity), sizeof(Entity));
 
-				// Set the data of the entity.
 				new_entity.spawned = false;
 				new_entity.inoctanode = false;
 
-				// Fix the entity's data.
+				// The entity attribute layout has changed over time.
+				// Depending on the map version we need to change them.
 				fix_entity_data(new_entity, cube2map->header.version);
 
 				// Yes, this is a Cube2 map.
@@ -557,16 +556,15 @@ namespace cube2_map_importer {
 						// Warning: Since there is no map which has this
 						// data in it for testing, this part of the code
 						// remains untested to this day.
+						// TODO: Refactor this?
 						cube2map->extra_entity_info = read_slice_from_buffer(extra_entity_info_size);
 					}
 
 					// Note: extra_entity_info isn't actually used in the game.
 					// but we still need to read this from the buffer to have the
-					// right read position in the stream.
+					// correct read position in the stream.
 
-					// Fix entity data.
-
-					// TODO: Why again????
+					// TODO: Why do we have to call this again here?
 					fix_entity_data(new_entity, cube2map->header.version);
 				}
 				else // No, Eisenstern maybe?
@@ -582,15 +580,16 @@ namespace cube2_map_importer {
 				}
 
 				// Entities should never be outside of the world.
+				// Except of lights, they can shine on the map from outside of the world.
 				if(!is_entity_inside_world(new_entity, cube2map->header.worldsize))
 				{
-					// Lights can be placed outside of the world.
 					if(new_entity.type != ET_LIGHT && new_entity.type != ET_SPOTLIGHT)
 					{
 						cout << "Warning: entity outside of world!" << endl;
 					}
 					else
 					{
+						// Lights might be placed outside of the world for valid reasons.
 						cout << "Info: light is placed outside of game world." << endl;
 					}
 				}
@@ -598,7 +597,7 @@ namespace cube2_map_importer {
 				// There seems to be some problem with the mapmodel texture.
 				if(cube2map->header.version <= 14 && new_entity.type == ET_MAPMODEL)
 				{
-					// But why?
+					// TODO: Why did they implement it like that?
 					new_entity.o.z += new_entity.attr3;
 
 					if(new_entity.attr4)
@@ -606,7 +605,7 @@ namespace cube2_map_importer {
 						cout << "Warning: mapmodel ent (index " << i << ") uses texture slot " << new_entity.attr4 << endl;
 					}
 					
-					// But why?
+					// TODO: Why did they implement it like that?
 					new_entity.attr3 = new_entity.attr4 = 0;
 				}
 
@@ -625,8 +624,7 @@ namespace cube2_map_importer {
 		// Check if there are too many entites in the world.
 		if(cube2map->header.number_of_entities > MAXENTS) 
 		{
-			// Do not read the following entites but move the read position
-			// in the stream forward anyways.
+			// Do not read the following entites but move the read position in the stream forward anyways.
 			int how_many_bytes_to_skip = 0;
 
 			cout << "Warning: map has " << cube2map->header.number_of_entities << " entities!" << endl;
