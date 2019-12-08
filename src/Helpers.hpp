@@ -15,7 +15,7 @@ namespace cube2_map_importer {
 
 	// In Cube2 we can use \f1 up to \f9 to color text.
 	// We do not want these bytes in the output console.
-	std::string remove_cube2_texture_coloring_bytes(std::string colored_map_title)
+	std::string remove_cube2_text_colorisation(std::string colored_map_title)
 	{
 		// The map title without coloring bytes.
 		std::string cleaned_map_title = "";

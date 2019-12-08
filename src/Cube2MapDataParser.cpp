@@ -32,20 +32,20 @@ namespace cube2_map_importer {
 	{
 		cout << "----------------------------------------------------------------------------" << endl;
 
-		cout << "Parsing map header." << endl;
+		cout << "Reading map header." << endl;
 
 		// TODO: Refactor this!
 
-		// Define the number of bytes from the structure which are filled out.
+		// Define the number of bytes of the structure which will be filled out.
 		#define MAP_OCTA_HEADER_READ_SIZE 7 * sizeof(int)
 
 		// Read most of the map header, but not everything.
 		// blendmap, numvars and numvslots will be read later.
 		read_memory_into_structure(&cube2map->header, MAP_OCTA_HEADER_READ_SIZE, MAP_OCTA_HEADER_READ_SIZE);
-
+		
 		cout << "Validating map header." << endl;
 		
-		// Check if magic number "OCTA" is valid.
+		// Check if the magic number of this file's header is valid.
 		if(0 != std::memcmp(cube2map->header.magic, "OCTA", 4))
 		{
 			// Something is wrong with the header section of this map!
@@ -54,10 +54,9 @@ namespace cube2_map_importer {
 		}
 		else
 		{
+			// The magic number of this file is correct.
 			cout << "Magic number: OCTA" << endl;
 		}
-		
-		cout << "Worldsize: " << cube2map->header.worldsize << endl;
 		
 		// Check if world size is valid.
 		if(cube2map->header.worldsize <= 0)
@@ -68,24 +67,24 @@ namespace cube2_map_importer {
 		
 		cout << "Entities: " << cube2map->header.number_of_entities << endl;
 
-		// Check if number of entites is valid.
-		// Please note that a map can have 0 entities though!
+		// Check if the number of entites in this map is valid.
+		// Please note that a map can have 0 entities!
 		if(cube2map->header.number_of_entities < 0)
 		{
 			cout << "Error: Invalid amount of entites!" << endl;
 			return false;
 		}
 
-		cout << "Mapversion: " << cube2map->header.version << endl;
+		cout << "Map version: " << cube2map->header.version << endl;
 
-		// Check if the mapversion is valid.
+		// Check if the mapversion is supported.
 		if(cube2map->header.version > CUBE2_MAP_IMPORTER_HIGHEST_SUPPORTED_MAPVERSION)
 		{
 			cout << "This map requires a newer version of the map loader!" << endl;
 			return false;
 		}
 
-		// In older versions of Cube2 the map byte layout was different.
+		// In older versions of Cube2 the memory layout was different.
 		// Support older map formats as well!
 		if(cube2map->header.version <= 28)
 		{
@@ -128,7 +127,11 @@ namespace cube2_map_importer {
 		{
 			// Looks like the change the arrangement of bytes in map version 30.
 			int extra = 0;
-			if(cube2map->header.version <= 29) extra++;
+
+			if(cube2map->header.version <= 29)
+			{
+				extra++;
+			}
 
 			cout << "Extra bytes: " << extra << endl;
 				
@@ -139,7 +142,6 @@ namespace cube2_map_importer {
 			// Important note: We read the memory into map_header, not compatible_map_header!
 			read_memory_into_structure(&cube2map->header.blendmap, BLENDMAP_BYTE_SIZE, BLENDMAP_BYTE_SIZE);
 		}
-
 
 		if(cube2map->header.version <= 28)
 		{
@@ -173,8 +175,6 @@ namespace cube2_map_importer {
 			if(p.skylight)
 			{
 				RGBColor output_color = convert_3_bytes_to_rgb(p.skylight);
-
-				// Print color as RGB value.
 				cout << "Skylight: ";
 				print_rgb_color_to_stdcout(output_color);
 			}
@@ -182,8 +182,6 @@ namespace cube2_map_importer {
 			if(p.watercolour)
 			{
 				RGBColor output_color = convert_3_bytes_to_rgb(p.watercolour);
-
-				// Print color as RGB value.
 				cout << "Watercolor: ";
 				print_rgb_color_to_stdcout(output_color);
 			}
@@ -191,8 +189,6 @@ namespace cube2_map_importer {
 			if(p.waterfallcolour)
 			{
 				RGBColor output_color = convert_3_bytes_to_rgb(p.waterfallcolour);
-				
-				// Print color as RGB value.
 				cout << "Waterfallcolour: ";
 				print_rgb_color_to_stdcout(output_color);
 			}
@@ -200,8 +196,6 @@ namespace cube2_map_importer {
 			if(p.lavacolour)
 			{
 				RGBColor output_color = convert_3_bytes_to_rgb(p.lavacolour);
-
-				// Print color as RGB value.
 				cout << "Lavacolour: ";
 				print_rgb_color_to_stdcout(output_color);
 			}
@@ -224,15 +218,15 @@ namespace cube2_map_importer {
 			
 			if(std::strlen(p.maptitle) > 0)
 			{
-				// Store the name of the map.
+				// Store the name of the map title.
 				cube2map->map_title = p.maptitle;
 
-				// Remove Cube2 coloring bytes from map title.
-				cube2map->clean_map_title = remove_cube2_texture_coloring_bytes(cube2map->map_title);
+				// Remove Cube2 text colorisation from map title.
+				cube2map->clean_map_title = remove_cube2_text_colorisation(cube2map->map_title);
 
-				// Print info message about maptitle
 				cout << "Maptitle: " << cube2map->map_title.c_str() << endl;
 
+				// Check if Misan made this map.
 				if(cube2map->clean_map_title.find("Misan") != string::npos)
 				{
 					cout << "Misan found!" << endl;
