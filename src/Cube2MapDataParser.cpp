@@ -397,7 +397,6 @@ namespace cube2_map_importer {
 
 	bool Cube2MapDataParser::read_game_name()
 	{
-		// Check the game name.
 		if(cube2map->header.version >= 16)
 		{
 			// The length of game name.
@@ -406,15 +405,16 @@ namespace cube2_map_importer {
 			// Read the name of the game.
 			cube2map->game_name = read_slice_from_buffer_as_string(game_name_length);
 
-			// We need to read 1 more byte since the string is null-terminates.
+			// We need to read 1 more byte since the string is null-terminated.
 			skip_reading_buffer_bytes(1);
 
-			cout << "game name: " << cube2map->game_name.c_str() << endl;
+			cout << "Game name: " << cube2map->game_name.c_str() << endl;
 
 			// For which game was this made?
 			if(0 == cube2map->game_name.compare("fps"))
 			{
 				// A Cube2: Sauerbraten map!
+				// This should be the case for most maps.
 				cube2map->map_for_cube2_game = true;
 			}
 			else
@@ -425,6 +425,7 @@ namespace cube2_map_importer {
 				if(0 == cube2map->game_name.compare("rpg"))
 				{
 					// Yes, Eisenstern!
+					// This is the case for k_rpg1
 					cube2map->map_for_eisenstern_rpg = true;
 				}
 				else
