@@ -21,9 +21,11 @@ int main(int argc, char* argv[])
 	std::size_t number_of_files = argc - 1;
 	
 	cout << "There are " << number_of_files << " maps to load." << endl;
+	
+	using namespace inexor::cube2_map_importer;
 
 	// Initialise the Cube2 map importer.
-	std::vector<inexor::cube2_map_importer::Cube2MapImporter> maps(number_of_files);
+	std::vector<std::shared_ptr<Cube2Map>> maps(number_of_files);
 	
 	// The threads of the main program.
 	//std::vector<std::thread> map_loading_threads(number_of_files);
@@ -37,16 +39,14 @@ int main(int argc, char* argv[])
 		// is the path and name to the program itself.
 		std::size_t array_index = i - 1;
 
-		using namespace inexor::cube2_map_importer;
-
 		// The map importer interface.
 		Cube2MapImporter cube_map_importer;
 		
 		// Allocate the data of the map.
-		std::shared_ptr<Cube2Map> example_map = std::make_shared<Cube2Map>();
+		maps[array_index] = std::make_shared<Cube2Map>();
 
 		// Load the map!
-		cube_map_importer.load_map_file(example_map, argv[i]);
+		cube_map_importer.load_map_file(maps[array_index], argv[i]);
 
 		cout << "----------------------------------------------------------------------------" << endl;
 
