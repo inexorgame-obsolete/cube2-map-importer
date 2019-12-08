@@ -1371,17 +1371,21 @@ namespace cube2_map_importer {
 
 	bool Cube2MapDataParser::read_octree()
 	{
+		cout << "Loading octree geometry" << endl;
+
 		// Create a shared pointer for the world root!
 		// It is important to do this before calling load_octree_node
 		// since otherwise the function will return std::nullptr!
 		cube2map->octree_world_root = std::make_shared<OctreeCube>();
 
-		// 
+		// The octree world root has children.
 		cube2map->octree_world_root->haschildren = true;
 
 		// Load the root of the octree game world.
 		// TODO: Refactor function call!
 		cube2map->octree_world_root->children = load_octree_node(ivec(0, 0, 0), cube2map->header.worldsize >> 1, cube2map->loading_octree_failed);
+		
+		cout << "Loaded " << cube2map->number_of_octree_nodes << " octree nodes." << endl;
 
 		return true;
 	}
