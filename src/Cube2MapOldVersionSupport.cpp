@@ -14,7 +14,7 @@ namespace cube2_map_importer {
 
 		if(n.iszero()) return 0;
 		int yaw = int(-atan2(n.x, n.y)/RAD), pitch = int(asin(n.z)/RAD);
-		return ushort(clamp(pitch + 90, 0, 180)*360 + (yaw < 0 ? yaw%360 + 360 : yaw%360) + 1);
+		return (ushort)clamp(pitch + 90, 0, 180)*360 + (yaw < 0 ? yaw%360 + 360 : yaw%360) + 1;
 	}
 	
 
@@ -358,8 +358,8 @@ namespace cube2_map_importer {
 							float u = src->x + (src->texcoords[k*2] / 255.0f) * (src->w - 1),
 								  v = src->y + (src->texcoords[k*2+1] / 255.0f) * (src->h - 1);
 
-							dv.u = ushort(floor(clamp((u) * float(USHRT_MAX+1)/LM_PACKW + 0.5f, 0.0f, float(USHRT_MAX))));
-							dv.v = ushort(floor(clamp((v) * float(USHRT_MAX+1)/LM_PACKH + 0.5f, 0.0f, float(USHRT_MAX))));
+							dv.u = (ushort)floor(clamp((u) * float(USHRT_MAX+1)/LM_PACKW + 0.5f, 0.0f, float(USHRT_MAX)));
+							dv.v = (ushort)floor(clamp((v) * float(USHRT_MAX+1)/LM_PACKH + 0.5f, 0.0f, float(USHRT_MAX)));
 						}
 						else
 						{
@@ -387,8 +387,8 @@ namespace cube2_map_importer {
 
 							bv.setxyz(pos[k]);
 
-							bv.u = ushort(floor(clamp((blend->x + (blend->texcoords[k*2] / 255.0f) * (blend->w - 1)) * float(USHRT_MAX+1)/LM_PACKW, 0.0f, float(USHRT_MAX))));
-							bv.v = ushort(floor(clamp((blend->y + (blend->texcoords[k*2+1] / 255.0f) * (blend->h - 1)) * float(USHRT_MAX+1)/LM_PACKH, 0.0f, float(USHRT_MAX))));
+							bv.u = (ushort)floor(clamp((blend->x + (blend->texcoords[k*2] / 255.0f) * (blend->w - 1)) * float(USHRT_MAX+1)/LM_PACKW, 0.0f, float(USHRT_MAX)));
+							bv.v = (ushort)floor(clamp((blend->y + (blend->texcoords[k*2+1] / 255.0f) * (blend->h - 1)) * float(USHRT_MAX+1)/LM_PACKH, 0.0f, float(USHRT_MAX)));
 
 							// TODO: Resolve!
 							bv.norm = usenorms && normals[i].normals[k] != bvec(128, 128, 128) ? encode_normal(normals[i].normals[k].tovec().normalize()) : 0;
