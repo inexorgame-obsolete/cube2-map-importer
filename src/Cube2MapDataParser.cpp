@@ -449,19 +449,19 @@ namespace cube2_map_importer {
 		// we need to support all other versions as well.
 		int extra_game_info_size = 0;
 			
-		// In Cube map format version 16 they introduces a specification for
-		// the game since they were working on Eisenstern..
+		// In Cube map format version 16 they introduced a specification for
+		// the game since they were working on the Eisenstern project.
+		// Eisenstern intended to create a RGP game based on the Cube2 engine.
 		if(cube2map->header.version >= 16)
 		{
 			// Read the size of the additional info.
 			extra_game_info_size = read_unsigned_short_from_buffer();
 
-			cout << "extra info size: " << extra_game_info_size << endl;
+			cout << "Extra info size: " << extra_game_info_size << endl;
 
-			// Additional information.
 			int how_many_bytes_to_read  = read_unsigned_short_from_buffer();
         
-			cout << "bytes to read: " << how_many_bytes_to_read << endl;
+			cout << "Extra Bytes to read: " << how_many_bytes_to_read << endl;
 				
 			if(how_many_bytes_to_read > 0)
 			{
