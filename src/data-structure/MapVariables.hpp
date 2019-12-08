@@ -1,5 +1,7 @@
 #pragma once
 
+#include "RGBColor.hpp"
+
 #include <string>
 
 
@@ -14,26 +16,6 @@ namespace cube2_map_importer {
 		ID_FVAR = 1,
 		ID_SVAR = 2,
 		ID_COLORVAR
-	};
-
-
-	struct RGBColor
-	{
-		void reset()
-		{
-			r = 0;
-			g = 0;
-			b = 0;
-		}
-
-		RGBColor()
-		{
-			reset();
-		}
-
-		int r;
-		int g;
-		int b;
 	};
 
 

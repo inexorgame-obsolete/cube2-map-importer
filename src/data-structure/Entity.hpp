@@ -21,7 +21,7 @@ namespace cube2_map_importer {
 	};
 
 
-	// static entity types
+	// static entity types.
 	enum STATIC_ENTITY_TYPE
 	{
 		NOTUSED = ET_EMPTY,         // entity slot not in use in map

@@ -1,5 +1,11 @@
 #pragma once
 
+#include "vector_geometry.hpp"
+
+#include <vector>
+#include <algorithm>
+
+
 namespace inexor {
 namespace cube2_map_importer {
 
@@ -105,8 +111,8 @@ namespace cube2_map_importer {
 
 
 
-	typedef unsigned int GLuint;
-	typedef unsigned int GLenum;
+	#define GLuint unsigned int
+	#define GLenum unsigned int
 	#define uchar unsigned char
 
 	struct Texture
@@ -179,7 +185,7 @@ namespace cube2_map_importer {
 			if(!ndata) { owner = this; freefunc = NULL; }
 		}
   
-		int calclevelsize(int level) const { return ((max(w>>level, 1)+align-1)/align)*((max(h>>level, 1)+align-1)/align)*bpp; }
+		int calclevelsize(int level) const { return ((std::max(w>>level, 1)+align-1)/align)*((std::max(h>>level, 1)+align-1)/align)*bpp; }
  
 		int calcsize() const
 		{
@@ -239,14 +245,14 @@ namespace cube2_map_importer {
 		{
 			int type;
 			Texture *t;
-			string name;
+			std::string name;
 			int combined;
 		};
 
 		int index;
 		std::vector<Tex> sts;
 		//Shader *shader;
-		vector<ShaderParam> params;
+		std::vector<ShaderParam> params;
 		VSlot *variants;
 		bool loaded;
 		uint texmask;

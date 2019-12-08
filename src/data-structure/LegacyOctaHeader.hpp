@@ -1,16 +1,19 @@
 #pragma once
 
+#include <memory>
+
+
 namespace inexor {
 namespace cube2_map_importer {
 
 	// A structure for old cube2 map formats.
 	// This has been introduced in Cube2 to
 	// ensure compatibility with old maps.
-	struct CompatibilityMapHeader
+	struct LegacyOctaHeader
 	{
 
 		// Reset memory in constructor.
-		CompatibilityMapHeader()
+		LegacyOctaHeader()
 		{
 			std::memset(&magic, 0, sizeof(magic));
 			version = 0;

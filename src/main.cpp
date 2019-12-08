@@ -37,9 +37,16 @@ int main(int argc, char* argv[])
 		// is the path and name to the program itself.
 		std::size_t array_index = i - 1;
 
-		inexor::cube2_map_importer::Cube2MapImporter cubeMap;
+		using namespace inexor::cube2_map_importer;
 
-		cubeMap.load_map_file(argv[i]);
+		// The map importer interface.
+		Cube2MapImporter cube_map_importer;
+		
+		// Allocate the data of the map.
+		std::shared_ptr<Cube2Map> example_map = std::make_shared<Cube2Map>();
+
+		// Load the map!
+		cube_map_importer.load_map_file(example_map, argv[i]);
 
 		cout << "----------------------------------------------------------------------------" << endl;
 

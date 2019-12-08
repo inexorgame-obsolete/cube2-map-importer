@@ -6,10 +6,13 @@
 namespace inexor {
 namespace cube2_map_importer {
 
-	// Lights.
+	// 
 	struct EntityLight
 	{
-		vec color, dir;
+		vec color;
+		
+		vec dir;
+
 		int millis;
 
 		EntityLight()
