@@ -480,41 +480,36 @@ namespace cube2_map_importer {
 
 		if(cube2map->header.version < 14)
 		{
-			cout << "Loading 256 texture MRU bytes." << endl;
+			cout << "Loading 256 texture MRU cache bytes." << endl;
 
-			// Pre-allocate the required memory.
+			// Allocate the required memory ahead of time.
 			cube2map->texture_mru.resize(256);
 
-			// Load new texture format.
 			for(std::size_t i=0; i<256; i++)
 			{
-				// Do not use push_back, since memory is already allocated.
 				cube2map->texture_mru[i] = read_unsigned_short_from_buffer();
 			}
 		}
 		else
 		{
-			// In map format version greater or equal 14
-			// we can have as many texture levels as we want.
+			// In map format version greater or equal 14 we can have as many texture levels as we want.
 			unsigned short how_many_texture_levels = read_unsigned_short_from_buffer();
 
-			cout << "Loading " << how_many_texture_levels << " texture MRU bytes." << endl;
+			cout << "Loading " << how_many_texture_levels << " texture MRU cache bytes." << endl;
 				
-			// Allocate memory ahead of time.
+			// Allocate the required memory ahead of time.
 			cube2map->texture_mru.resize(how_many_texture_levels);
 				
 			if(how_many_texture_levels > 0)
 			{
-				// Load new texture format.
 				for(std::size_t i=0; i<how_many_texture_levels; i++)
 				{
-					// Do not use push_back, since memory is already allocated.
 					cube2map->texture_mru[i] = read_unsigned_short_from_buffer();
 				}
 			}
 		}
 
-		cout << "Loaded " << cube2map->texture_mru.size() << " texture MRU bytes." << endl;
+		cout << "Loaded " << cube2map->texture_mru.size() << " texture MRU cache bytes." << endl;
 			
 		return true;
 	}
