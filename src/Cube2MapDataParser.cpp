@@ -271,6 +271,11 @@ namespace cube2_map_importer {
 		{
 			cout << "----------------------------------------------------------------------------" << endl;
 			
+			cout << "Reserving " << cube2map->header.number_of_map_variables << " map variable slots." << endl;
+
+			// Reserve memory ahead of time instead of using cube2map->variables.push_back().
+			cube2map->variables.resize(cube2map->header.number_of_map_variables);
+			
 			// Loop through all variables and read them.
 			for(int i=0; i<cube2map->header.number_of_map_variables; i++)
 			{
@@ -370,11 +375,9 @@ namespace cube2_map_importer {
 					}
 				}
 					
-				// TODO: Do not use push_back, but allocate memory ahead of time!
-
 				// We are done parsing the data.
 				// Now add it to the vector of map variables.
-				cube2map->variables.push_back(new_map_variable);
+				cube2map->variables[i] = new_map_variable;
 			}
 
 			// Check if the number of variables to read is valid.
