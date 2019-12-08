@@ -376,20 +376,20 @@ struct bvec
     {
         vec n(x-127.5f, y-127.5f, z-127.5f);
         float mag = 127.5f/n.magnitude();
-        x = unsigned char(n.x*mag+127.5f);
-        y = unsigned char(n.y*mag+127.5f);
-        z = unsigned char(n.z*mag+127.5f);
+        x = (unsigned char)n.x*mag+127.5f;
+        y = (unsigned char)n.y*mag+127.5f;
+        z = (unsigned char)n.z*mag+127.5f;
         return *this;
     }
 
-    void lerp(const bvec &a, const bvec &b, float t) { x = unsigned char(a.x + (b.x-a.x)*t); y = unsigned char(a.y + (b.y-a.y)*t); z = unsigned char(a.z + (b.z-a.z)*t); }
+    void lerp(const bvec &a, const bvec &b, float t) { x = (unsigned char)a.x + (b.x-a.x)*t; y = (unsigned char)a.y + (b.y-a.y)*t; z = (unsigned char)a.z + (b.z-a.z)*t; }
 
     void flip() { x -= 128; y -= 128; z -= 128; }
 
     bvec &shl(int n) { x<<= n; y<<= n; z<<= n; return *this; }
     bvec &shr(int n) { x>>= n; y>>= n; z>>= n; return *this; }
 
-    static bvec fromcolor(const vec &v) { return bvec(unsigned char(v.x*255.0f), unsigned char(v.y*255.0f), unsigned char(v.z*255.0f)); }
+    static bvec fromcolor(const vec &v) { return bvec((unsigned char)v.x*255.0f, (unsigned char)v.y*255.0f, (unsigned char)v.z*255.0f); }
     vec tocolor() const { return vec(x*(1.0f/255.0f), y*(1.0f/255.0f), z*(1.0f/255.0f)); }
 };
 
